@@ -514,26 +514,37 @@ impl<'input> Tokenizer<'input> {
     }
 
     fn literal(&mut self, idx0: usize, delim: char) -> Result<Spanned<Tok<'input>>, Error> {
-        let mut pc = '\0';
+        let mut t;
         loop {
-            match self.bump() {
-                Some((idx1, c)) if c == delim && pc != delim => {
-                    let text = &self.text[idx0 + 1..idx1];
-                    let tok = if delim == '\'' {
-                        StringLiteral(text)
-                    } else {
-                        Id(text) // empty Id (ie "") is OK
-                    };
-                    self.bump(); // consume the delim
-                    return Ok((idx0, tok, idx1 + 1));
+            t = self.bump();
+            match t {
+                Some((_, c)) if c == delim => {
+                    if let Some((_, nc)) = self.bump() {
+                        if nc == delim {
+                            continue;
+                        }
+                    }
+                    break;
                 }
-                Some((_, c)) => {
-                    pc = c;
+                Some((_, _)) => {
+                    continue;
                 }
                 None => {
-                    return error(UnterminatedLiteral, idx0, self.text);
+                    break;
                 }
             }
+        }
+        match t {
+            Some((idx1, c)) if c == delim => {
+                let text = &self.text[idx0 + 1..idx1];
+                let tok = if delim == '\'' {
+                    StringLiteral(text)
+                } else {
+                    Id(text) // empty Id (ie "") is OK
+                };
+                Ok((idx0, tok, idx1 + 1))
+            }
+            _ => error(UnterminatedLiteral, idx0, self.text),
         }
     }
 
@@ -765,15 +776,13 @@ mod test {
 
     fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {
         let lexer = Tokenizer::new(input, 0);
-        let mut expected_tokens_it = expected_tokens.into_iter();
-        for actual in lexer {
-            assert!(actual.is_ok());
-            let (_, actual_token, _) = actual.unwrap();
-            let expected_token = expected_tokens_it.next().unwrap();
-            assert_eq!(expected_token, actual_token);
-        }
-        let missing_token = expected_tokens_it.next();
-        assert_eq!(None, missing_token);
+        let actual_tokens: Vec<Tok> = lexer.into_iter()
+            .map(|r| {
+                let (_, t, _) = r.unwrap();
+                t
+            })
+            .collect();
+        assert_eq!(expected_tokens, actual_tokens);
     }
 
     fn assert_error(expected_tokens: Vec<Result<Tok, Error>>, input: &str) {
@@ -928,5 +937,48 @@ mod test {
                                    super::error(ErrorCode::ExpectedEqualsSign, 0, ""),
                                    Ok(Tok::Id("b"))];
         assert_error(expected_tokens, "SELECT a!b");
+    }
+
+    #[test]
+    fn test_pipe() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::BitOr, Tok::Id("b")];
+        assert_tokens(expected_tokens, "SELECT a|b");
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Concat, Tok::Id("b")];
+        assert_tokens(expected_tokens, "SELECT a||b");
+    }
+
+    #[test]
+    fn test_comma() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Comma, Tok::Id("b")];
+        assert_tokens(expected_tokens, "SELECT a,b");
+    }
+
+    #[test]
+    fn test_ampersand() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::BitAnd, Tok::Id("b")];
+        assert_tokens(expected_tokens, "SELECT a&b");
+    }
+
+    #[test]
+    fn test_tilde() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::BitNot, Tok::Id("b")];
+        assert_tokens(expected_tokens, "SELECT a~b");
+    }
+
+    #[test]
+    fn test_literal() {
+        let expected_tokens = vec![Tok::Select, Tok::StringLiteral("")];
+        assert_tokens(expected_tokens, "SELECT ''");
+        let expected_tokens = vec![Tok::Select, Tok::Id("")];
+        assert_tokens(expected_tokens, "SELECT \"\"");
+        let expected_tokens = vec![Tok::Select, Tok::Id("")];
+        assert_tokens(expected_tokens, "SELECT ``");
+
+        let expected_tokens = vec![Tok::Select, Tok::StringLiteral("hel''lo")];
+        assert_tokens(expected_tokens, "SELECT 'hel''lo'");
+        let expected_tokens = vec![Tok::Select, Tok::Id("hel\"\"lo")];
+        assert_tokens(expected_tokens, "SELECT \"hel\"\"lo\"");
+        let expected_tokens = vec![Tok::Select, Tok::Id("hel``lo")];
+        assert_tokens(expected_tokens, "SELECT `hel``lo`");
     }
 }
