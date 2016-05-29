@@ -341,6 +341,7 @@ impl<'input> Tokenizer<'input> {
         t
     }
 
+    #[allow(cyclomatic_complexity)]
     fn next_unshifted(&mut self) -> Option<Result<Spanned<Tok<'input>>, Error>> {
         loop {
             return match self.lookahead {
@@ -590,7 +591,7 @@ impl<'input> Tokenizer<'input> {
         };
 
         match self.take_while_1(|c| c.is_digit(10)) {
-            Some(end) => Ok((idx0, Float(&self.text[idx0..end]), end)),
+            Some(end) => Ok((idx0, Float(&self.text[idx0..end + 1]), end + 1)),
             None => error(BadNumber, idx0, self.text),
         }
     }
@@ -624,7 +625,7 @@ impl<'input> Tokenizer<'input> {
     fn hex_integer(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
         // Must not be empty (Ox is invalid)
         match self.take_while_1(|c| c.is_digit(16)) {
-            Some(end) => Ok((idx0, Integer(&self.text[idx0..end]), end)),
+            Some(end) => Ok((idx0, Integer(&self.text[idx0..end + 1]), end + 1)),
             None => error(MalformedHexInteger, idx0, self.text),
         }
     }
@@ -676,26 +677,22 @@ impl<'input> Tokenizer<'input> {
         }
     }
 
-    // Returns `None` when `keep_going` does not succeed on at least once.
+    // Returns `None` when `keep_going` does not succeed at least once.
     fn take_while_1<F>(&mut self, mut keep_going: F) -> Option<usize>
         where F: FnMut(char) -> bool
     {
-        let mut none = true;
+        let mut t = None;
         loop {
             match self.lookahead {
                 None => {
-                    return None;
+                    return t;
                 }
                 Some((idx1, c)) => {
                     if !keep_going(c) {
-                        if none {
-                            return None;
-                        } else {
-                            return Some(idx1);
-                        }
+                        return t;
                     } else {
                         self.bump();
-                        none = false;
+                        t = Some(idx1);
                     }
                 }
             }
@@ -980,5 +977,77 @@ mod test {
         assert_tokens(expected_tokens, "SELECT \"hel\"\"lo\"");
         let expected_tokens = vec![Tok::Select, Tok::Id("hel``lo")];
         assert_tokens(expected_tokens, "SELECT `hel``lo`");
+
+        let expected_tokens = vec![Tok::Select, Tok::StringLiteral("hel''lo''")];
+        assert_tokens(expected_tokens, "SELECT 'hel''lo'''");
+
+        let expected_tokens = vec![Tok::Select, Tok::StringLiteral("''hel''lo''")];
+        assert_tokens(expected_tokens, "SELECT '''hel''lo'''");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+        assert_error(expected_tokens, "SELECT '");
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+        assert_error(expected_tokens, "SELECT '''");
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+        assert_error(expected_tokens, "SELECT 'hel''");
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+        assert_error(expected_tokens, "SELECT 'hel''lo''");
     }
+
+    #[test]
+    fn test_dot() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Dot, Tok::Star];
+        assert_tokens(expected_tokens, "SELECT a.*");
+        let expected_tokens = vec![Tok::Select, Tok::Dot, Tok::Star];
+        assert_tokens(expected_tokens, "SELECT .*");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float(".1234")];
+        assert_tokens(expected_tokens, "SELECT .1234");
+    }
+
+    #[test]
+    fn test_number() {
+        let expected_tokens = vec![Tok::Select, Tok::Float("3.14")];
+        assert_tokens(expected_tokens, "SELECT 3.14");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5E10")];
+        assert_tokens(expected_tokens, "SELECT 2.5E10");
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5E10")];
+        assert_tokens(expected_tokens, "SELECT 2.5E10 ");
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5E10"), Tok::Semi];
+        assert_tokens(expected_tokens, "SELECT 2.5E10;");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5e10")];
+        assert_tokens(expected_tokens, "SELECT 2.5e10");
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5e1")];
+        assert_tokens(expected_tokens, "SELECT 2.5e1");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5E-10")];
+        assert_tokens(expected_tokens, "SELECT 2.5E-10");
+        let expected_tokens = vec![Tok::Select, Tok::Float("2.5E+1")];
+        assert_tokens(expected_tokens, "SELECT 2.5E+1");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float("5.")];
+        assert_tokens(expected_tokens, "SELECT 5.");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float(".5")];
+        assert_tokens(expected_tokens, "SELECT .5");
+
+        let expected_tokens = vec![Tok::Select, Tok::Float("0.5")];
+        assert_tokens(expected_tokens, "SELECT 0.5");
+
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1e");
+
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1e-");
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1e+");
+    }
+
+    // TODO hexa
 }
