@@ -560,6 +560,9 @@ impl<'input> Tokenizer<'input> {
                     return Ok((idx0, Blob(&self.text[idx0 + 1..idx1]), idx1 + 1));
                 }
                 _ => {
+                    if self.take_until(|c| c == '\'').is_some() {
+                        self.bump();
+                    }
                     return error(MalformedBlobLiteral, idx0, self.text);
                 }
             }
@@ -1170,5 +1173,28 @@ mod test {
         let expected_tokens = vec![Ok(Tok::Select),
                                    super::error(ErrorCode::BadVariableName, 0, ""), Ok(Tok::Comma)];
         assert_error(expected_tokens, "SELECT :,");
+    }
+
+    #[test]
+    fn test_blob_literal() {
+        let expected_tokens = vec![Tok::Select, Tok::Id("x0")];
+        assert_tokens(expected_tokens, "SELECT x0");
+
+        let expected_tokens = vec![Tok::Select, Tok::Blob("abcde123")];
+        assert_tokens(expected_tokens, "SELECT x'abcde123'");
+        let expected_tokens = vec![Tok::Select, Tok::Blob("abcde123")];
+        assert_tokens(expected_tokens, "SELECT X'abcde123'");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+        assert_error(expected_tokens, "SELECT x'adcef',");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+        assert_error(expected_tokens, "SELECT x'adcefg',");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::MalformedBlobLiteral, 0, "")];
+        assert_error(expected_tokens, "SELECT x'adcef");
     }
 }
