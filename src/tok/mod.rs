@@ -502,7 +502,10 @@ impl<'input> Tokenizer<'input> {
                         Some(self.identifierish(idx0))
                     }
                 }
-                Some((idx, _)) => Some(error(UnrecognizedToken, idx, self.text)),
+                Some((idx, _)) => {
+                    self.bump();
+                    Some(error(UnrecognizedToken, idx, self.text))
+                },
                 None => None,
             };
         }
@@ -1196,5 +1199,15 @@ mod test {
         let expected_tokens = vec![Ok(Tok::Select),
                                    super::error(ErrorCode::MalformedBlobLiteral, 0, "")];
         assert_error(expected_tokens, "SELECT x'adcef");
+    }
+
+    #[test]
+    fn test_illegal_char() {
+        let expected_tokens = vec![super::error(ErrorCode::UnrecognizedToken, 0, "")];
+        assert_error(expected_tokens, "\\");
+        let expected_tokens = vec![super::error(ErrorCode::UnrecognizedToken, 0, "")];
+        assert_error(expected_tokens, "{");
+        let expected_tokens = vec![super::error(ErrorCode::UnrecognizedToken, 0, "")];
+        assert_error(expected_tokens, "}");
     }
 }
