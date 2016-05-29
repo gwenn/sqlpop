@@ -505,7 +505,7 @@ impl<'input> Tokenizer<'input> {
                 Some((idx, _)) => {
                     self.bump();
                     Some(error(UnrecognizedToken, idx, self.text))
-                },
+                }
                 None => None,
             };
         }
@@ -1173,8 +1173,8 @@ mod test {
                                    super::error(ErrorCode::BadVariableName, 0, "")];
         assert_error(expected_tokens, "SELECT :");
 
-        let expected_tokens = vec![Ok(Tok::Select),
-                                   super::error(ErrorCode::BadVariableName, 0, ""), Ok(Tok::Comma)];
+        let expected_tokens =
+            vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, ""), Ok(Tok::Comma)];
         assert_error(expected_tokens, "SELECT :,");
     }
 
@@ -1189,11 +1189,13 @@ mod test {
         assert_tokens(expected_tokens, "SELECT X'abcde123'");
 
         let expected_tokens = vec![Ok(Tok::Select),
-                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""),
+                                   Ok(Tok::Comma)];
         assert_error(expected_tokens, "SELECT x'adcef',");
 
         let expected_tokens = vec![Ok(Tok::Select),
-                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+                                   super::error(ErrorCode::MalformedBlobLiteral, 0, ""),
+                                   Ok(Tok::Comma)];
         assert_error(expected_tokens, "SELECT x'adcefg',");
 
         let expected_tokens = vec![Ok(Tok::Select),
