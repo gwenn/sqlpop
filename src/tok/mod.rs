@@ -341,7 +341,7 @@ impl<'input> Tokenizer<'input> {
         t
     }
 
-    #[allow(cyclomatic_complexity)]
+    //#[allow(cyclomatic_complexity)]
     fn next_unshifted(&mut self) -> Option<Result<Spanned<Tok<'input>>, Error>> {
         loop {
             return match self.lookahead {
@@ -573,6 +573,9 @@ impl<'input> Tokenizer<'input> {
             Some((end, c)) => {
                 if c == 'e' || c == 'E' {
                     self.exponential_part(idx0)
+                } else if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
                 } else {
                     Ok((idx0, Float(&self.text[idx0..end]), end))
                 }
@@ -591,8 +594,16 @@ impl<'input> Tokenizer<'input> {
         };
 
         match self.take_while_1(|c| c.is_digit(10)) {
-            Some(end) => Ok((idx0, Float(&self.text[idx0..end + 1]), end + 1)),
-            None => error(BadNumber, idx0, self.text),
+            (false, _) => error(BadNumber, idx0, self.text),
+            (true, Some((end, c))) => {
+                if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
+                } else {
+                    Ok((idx0, Float(&self.text[idx0..end]), end))
+                }
+            },
+            (true, None) => Ok((idx0, Float(&self.text[idx0..]), self.text.len())),
         }
     }
 
@@ -614,6 +625,9 @@ impl<'input> Tokenizer<'input> {
                     self.fractional_part(idx0)
                 } else if c == 'e' || c == 'E' {
                     self.exponential_part(idx0)
+                } else if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
                 } else {
                     Ok((idx0, Integer(&self.text[idx0..end]), end))
                 }
@@ -625,8 +639,19 @@ impl<'input> Tokenizer<'input> {
     fn hex_integer(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
         // Must not be empty (Ox is invalid)
         match self.take_while_1(|c| c.is_digit(16)) {
-            Some(end) => Ok((idx0, Integer(&self.text[idx0..end + 1]), end + 1)),
-            None => error(MalformedHexInteger, idx0, self.text),
+            (false, _) => {
+                self.word(idx0);
+                error(MalformedHexInteger, idx0, self.text)
+            },
+            (true, Some((end, c))) => {
+                if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(MalformedHexInteger, idx0, self.text)
+                } else {
+                    Ok((idx0, Integer(&self.text[idx0..end]), end))
+                }
+            },
+            (true, None) => Ok((idx0, Integer(&self.text[idx0..]), self.text.len())),
         }
     }
 
@@ -678,21 +703,21 @@ impl<'input> Tokenizer<'input> {
     }
 
     // Returns `None` when `keep_going` does not succeed at least once.
-    fn take_while_1<F>(&mut self, mut keep_going: F) -> Option<usize>
+    fn take_while_1<F>(&mut self, mut keep_going: F) -> (bool, Option<(usize, char)>)
         where F: FnMut(char) -> bool
     {
-        let mut t = None;
+        let mut succeed = false;
         loop {
             match self.lookahead {
                 None => {
-                    return t;
+                    return (succeed, None);
                 }
-                Some((idx1, c)) => {
+                Some((_, c)) => {
                     if !keep_going(c) {
-                        return t;
+                        return (succeed, self.lookahead);
                     } else {
                         self.bump();
-                        t = Some(idx1);
+                        succeed = true;
                     }
                 }
             }
@@ -1040,6 +1065,11 @@ mod test {
         let expected_tokens = vec![Tok::Select, Tok::Float("0.5")];
         assert_tokens(expected_tokens, "SELECT 0.5");
 
+        let expected_tokens = vec![Tok::Select, Tok::Integer("5")];
+        assert_tokens(expected_tokens, "SELECT 5");
+        let expected_tokens = vec![Tok::Select, Tok::Integer("2501")];
+        assert_tokens(expected_tokens, "SELECT 2501");
+
         let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
         assert_error(expected_tokens, "SELECT 1e");
 
@@ -1047,7 +1077,28 @@ mod test {
         assert_error(expected_tokens, "SELECT 1e-");
         let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
         assert_error(expected_tokens, "SELECT 1e+");
+
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1_");
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1.0_");
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadNumber, 0, "")];
+        assert_error(expected_tokens, "SELECT 1.0e5_");
     }
 
-    // TODO hexa
+    #[test]
+    fn test_hex_integer() {
+        let expected_tokens = vec![Tok::Select, Tok::Integer("0x5")];
+        assert_tokens(expected_tokens, "SELECT 0x5");
+        let expected_tokens = vec![Tok::Select, Tok::Integer("0X52")];
+        assert_tokens(expected_tokens, "SELECT 0X52");
+        let expected_tokens = vec![Tok::Select, Tok::Integer("0Xff")];
+        assert_tokens(expected_tokens, "SELECT 0Xff");
+
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::MalformedHexInteger, 0, "")];
+        assert_error(expected_tokens, "SELECT 0Xfg");
+
+        let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::MalformedHexInteger, 0, "")];
+        assert_error(expected_tokens, "SELECT 0Xg");
+    }
 }
