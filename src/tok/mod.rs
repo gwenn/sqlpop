@@ -1127,4 +1127,48 @@ mod test {
         let expected_tokens = vec![Tok::Select, Tok::Variable("?12")];
         assert_tokens(expected_tokens, "SELECT ?12");
     }
+
+    #[test]
+    fn test_dollar() {
+        let expected_tokens = vec![Tok::Select, Tok::Variable("$a")];
+        assert_tokens(expected_tokens, "SELECT $a");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::BadVariableName, 0, "")];
+        assert_error(expected_tokens, "SELECT $");
+    }
+
+    #[test]
+    fn test_at() {
+        let expected_tokens = vec![Tok::Select, Tok::Variable("@a")];
+        assert_tokens(expected_tokens, "SELECT @a");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::BadVariableName, 0, "")];
+        assert_error(expected_tokens, "SELECT @");
+    }
+
+    #[test]
+    fn test_hash() {
+        let expected_tokens = vec![Tok::Select, Tok::Variable("#a")];
+        assert_tokens(expected_tokens, "SELECT #a");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::BadVariableName, 0, "")];
+        assert_error(expected_tokens, "SELECT #");
+    }
+
+    #[test]
+    fn test_colon() {
+        let expected_tokens = vec![Tok::Select, Tok::Variable(":a")];
+        assert_tokens(expected_tokens, "SELECT :a");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::BadVariableName, 0, "")];
+        assert_error(expected_tokens, "SELECT :");
+
+        let expected_tokens = vec![Ok(Tok::Select),
+                                   super::error(ErrorCode::BadVariableName, 0, ""), Ok(Tok::Comma)];
+        assert_error(expected_tokens, "SELECT :,");
+    }
 }
