@@ -28,6 +28,8 @@ pub Cmd = {
 	Rollback,
 	Savepoint,
 	Release,
+//	CreateTable,
+	DropTable,
 };
 
 TransactionName = "Id";
@@ -120,7 +122,7 @@ DefaultValue: () = {
 };
 
 ForeignKeyClause: () =
-	"references" TableName ("(" CommaList<ColumnName> ")")? RefArg* DeferSubclause? => ();
+	"references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => ();
 RefArg: () = {
 	"on" "delete" RefAct => (),
 	"on" "update" RefAct => (),
@@ -158,11 +160,13 @@ SortOrder = {
 NamedTableConstraint: () =
 	("constraint" ConstraintName)? TableConstraint => ();
 TableConstraint: () = {
-	"primary" "key" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
-	"unique" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
+	"primary" "key" "(" CommaList<SortedColumn> "autoincrement"? ")" ConflictClause? => (),
+	"unique" "(" CommaList<SortedColumn> ")" ConflictClause? => (),
 	"check" "(" Expr ")" => (),
-	"foreign" "key" "(" CommaList<ColumnName> ")" ForeignKeyClause => (),
+	"foreign" "key" "(" CommaList<IndexedColumn> ")" ForeignKeyClause => (),
 };
+SortedColumn: () =
+	Expr SortOrder? => ();
 IndexedColumn: () =
 	ColumnName ("collate" CollationName)? SortOrder? => ();
 
@@ -171,10 +175,9 @@ Expr: () = {
 	// TODO
 };
 
-//DropTable = {
-//	
-//};
-//
+DropTable: () =
+	"drop" "table" ("if" "exists")? QualifiedTableName => ();
+
 //CreateView = {
 //	
 //};
