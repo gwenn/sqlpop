@@ -2,6 +2,14 @@ use tok::{self, Tok};
 
 grammar<'input>(text: &'input str);
 
+CommaList<T>: Vec<T> = {
+	<head:T> <tail:("," <T>)*> => {
+		let mut v = vec![head];
+		v.extend_from_slice(&tail);
+		v
+	}
+};
+
 pub CmdList: Vec<()> = {
 	<v:(<Cmd> ";")*> <c:Cmd?> => match c {
 		None => v,
@@ -18,6 +26,8 @@ pub Cmd = {
 	Begin,
 	Commit,
 	Rollback,
+	Savepoint,
+	Release,
 };
 
 Begin: () = {
@@ -30,28 +40,139 @@ TransactionType = {
 };
 
 Commit: () = {
-	"commit" ("transaction" Name?)? => ()
+	"commit" ("transaction" Name?)? => (),
+	"end" ("transaction" Name?)? => (),
 };
+
 Rollback: () = {
-	"rollback" ("transaction" Name?)? => ()
+	"rollback" ("transaction" Name?)? => (),
+	"rollback" ("transaction" Name?)? "to" "savepoint"? Name => ()
+};
+
+Savepoint: () = {
+	"savepoint" Name => ()
+};
+Release: () = {
+	"release" "savepoint"? Name => (),
+};
+
+CreateTable: () = {
+	CreateTableStart "(" CommaList<Column> CommaList<NamedTableConstraint>? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
+//	CreateTableStart "as" Select => ()
+};
+CreateTableStart: () = {
+	"create" "temp"? "table" ("if" "not" "exists")? QualifiedTableName => ()
+};
+
+Column: () = {
+	Name TypeName? (("constraint" Name)? ColumnConstraint)* => ()
 };
 
 Name = {
 	"Id",
-	"StringLiteral",
-	// TODO JOIN_KW
+	// TODO "StringLiteral",
+	// TODO "cross", "inner", left", "natural", "outer", "right"
+};
+QualifiedTableName: () = {
+	(Name ".")? Name => ()
+};
+TypeName: () = {
+	"Id"+ => (),
+	"Id"+ "(" SignedNumber ")" => (),
+	"Id"+ "(" SignedNumber "," SignedNumber ")" => (),
+};
+SignedNumber: () = {
+	"+"? NumericLiteral => (),
+	"-" NumericLiteral => (),
+};
+NumericLiteral: () = {
+	"Integer" => (),
+	"Float" => (),
 };
 
-//SavePoint = {
-//	
-//};
-//Release = {
-//	
-//};
-//
-//CreateTable = {
-//	
-//};
+ColumnConstraint: () = {
+	"primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
+	"not"? "null" ConflictClause? => (),
+	"unique" ConflictClause? => (),
+	"check" "(" Expr ")" => (),
+	"default" DefaultValue => (),
+	"collate" "Id" => (),
+	ForeignKeyClause => (),
+};
+
+ConflictClause: () = {
+	"on" "conflict" ResolveType => ()
+};
+ResolveType = {
+	"rollback",
+	"abort",
+	"fail",
+	"ignore",
+	"replace",
+};
+
+DefaultValue: () = {
+	SignedNumber => (),
+	LiteralValue => (),
+	"(" Expr ")" => (),
+};
+
+ForeignKeyClause: () = {
+	"references" Name ("(" CommaList<Name> ")")? RefArg* DeferSubclause? => (),
+};
+RefArg: () = {
+	"on" "delete" RefAct => (),
+	"on" "update" RefAct => (),
+	"match" Name => (),
+};
+RefAct: () = {
+	"set" "null" => (),
+	"set" "default" => (),
+	"cascade" => (),
+	"restrict" => (),
+	"no" "action" => (),
+};
+DeferSubclause: () = {
+	"not"? "deferred" InitDeferredPred? => ()
+};
+InitDeferredPred: () = {
+	"initially" "deferred" => (),
+	"initially" "immediate" => (),
+};
+
+LiteralValue: () = {
+	NumericLiteral => (),
+	"StringLiteral" => (),
+	"Blob" => (),
+	"null" => (),
+	"current_date" => (),
+	"current_time" => (),
+	"current_timestamp" => (),
+};
+
+SortOrder = {
+	"asc",
+	"desc"
+};
+
+NamedTableConstraint: () = {
+	("constraint" Name)? TableConstraint => ()
+};
+TableConstraint: () = {
+	"primary" "key" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
+	"unique" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
+	"check" "(" Expr ")" => (),
+	"foreign" "key" "(" CommaList<Name> ")" ForeignKeyClause => (),
+};
+IndexedColumn: () = {
+	Name ("collate" "Id")? SortOrder? => (),
+};
+
+Expr: () = {
+	LiteralValue => (),
+	// TODO
+};
+
 //DropTable = {
 //	
 //};
@@ -154,10 +275,10 @@ extern {
 				"conflict" => Tok::Conflict,
 				"constraint" => Tok::Constraint,
 				"create" => Tok::Create,
-				"cross" => Tok::JoinKw,
-				"current_date" => Tok::CtimeKw,
-				"current_time" => Tok::CtimeKw,
-				"current_timestamp" => Tok::CtimeKw,
+				"cross" => Tok::Cross,
+				"current_date" => Tok::CurrentDate,
+				"current_time" => Tok::CurrentTime,
+				"current_timestamp" => Tok::CurrentTimestamp,
 				"database" => Tok::Database,
 				"default" => Tok::Default,
 				"deferrable" => Tok::Deferrable,
@@ -179,8 +300,8 @@ extern {
 				"for" => Tok::For,
 				"foreign" => Tok::Foreign,
 				"from" => Tok::From,
-				"full" => Tok::JoinKw,
-				"glob" => Tok::LikeKw,
+				"full" => Tok::Full,
+				"glob" => Tok::Glob,
 				"group" => Tok::Group,
 				"having" => Tok::Having,
 				"if" => Tok::If,
@@ -190,20 +311,20 @@ extern {
 				"index" => Tok::Index,
 				"indexed" => Tok::Indexed,
 				"initially" => Tok::Initially,
-				"inner" => Tok::JoinKw,
+				"inner" => Tok::Inner,
 				"insert" => Tok::Insert,
 				"instead" => Tok::Instead,
 				"intersect" => Tok::Intersect,
 				"into" => Tok::Into,
 				"is" => Tok::Is,
 				"isnull" => Tok::IsNull,
-				"join" => Tok::JoinKw,
+				"join" => Tok::Join,
 				"key" => Tok::Key,
-				"left" => Tok::JoinKw,
-				"like" => Tok::LikeKw,
+				"left" => Tok::Left,
+				"like" => Tok::Like,
 				"limit" => Tok::Limit,
 				"match" => Tok::Match,
-				"natural" => Tok::JoinKw,
+				"natural" => Tok::Natural,
 				"no" => Tok::No,
 				"not" => Tok::Not,
 				"notnull" => Tok::NotNull,
@@ -213,7 +334,7 @@ extern {
 				"on" => Tok::On,
 				"or" => Tok::Or,
 				"order" => Tok::Order,
-				"outer" => Tok::JoinKw,
+				"outer" => Tok::Outer,
 				"plan" => Tok::Plan,
 				"pragma" => Tok::Pragma,
 				"primary" => Tok::Primary,
@@ -221,13 +342,13 @@ extern {
 				"raise" => Tok::Raise,
 				"recursive" => Tok::Recursive,
 				"references" => Tok::References,
-				"regexp" => Tok::LikeKw,
+				"regexp" => Tok::Regexp,
 				"reindex" => Tok::Reindex,
 				"release" => Tok::Release,
 				"rename" => Tok::Rename,
 				"replace" => Tok::Replace,
 				"restrict" => Tok::Restrict,
-				"right" => Tok::JoinKw,
+				"right" => Tok::Right,
 				"rollback" => Tok::Rollback,
 				"row" => Tok::Row,
 				"savepoint" => Tok::Savepoint,
@@ -235,7 +356,6 @@ extern {
 				"set" => Tok::Set,
 				"table" => Tok::Table,
 				"temp" => Tok::Temp,
-				"temporary" => Tok::Temp,
 				"then" => Tok::Then,
 				"to" => Tok::To,
 				"transaction" => Tok::Transaction,
@@ -273,7 +393,7 @@ extern {
         "<<" => Tok::LeftShift,
         "<=" => Tok::LessEquals,
         "<" => Tok::LessThan,
-        "+" => Tok::Minus,
+        "-" => Tok::Minus,
         "<>" => Tok::NotEquals,
         "+" => Tok::Plus,
         "%" => Tok::Reminder,
