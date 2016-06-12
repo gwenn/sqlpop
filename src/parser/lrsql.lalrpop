@@ -30,6 +30,8 @@ pub Cmd = {
 	Release,
 //	CreateTable,
 	DropTable,
+	CreateView,
+	DropView,
 };
 
 TransactionName = "Id";
@@ -64,7 +66,7 @@ TableName = "Id";
 
 CreateTable: () = {
 	CreateTableStart "(" CommaList<Column> CommaList<NamedTableConstraint>? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
-//	CreateTableStart "as" Select => ()
+	CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
 	"create" "temp"? "table" ("if" "not" "exists")? QualifiedTableName => ();
@@ -178,17 +180,15 @@ Expr: () = {
 DropTable: () =
 	"drop" "table" ("if" "exists")? QualifiedTableName => ();
 
-//CreateView = {
-//	
-//};
-//DropView = {
-//	
-//};
-//
-//Select = {
-//	
-//};
-//
+CreateView: () =
+	"create" "temp"? "view" ("if" "not" "exists")? QualifiedTableName "(" CommaList<IndexedColumn> ")" "as" Select => ();
+DropView: () =
+	"drop" "view" ("if" "exists")? QualifiedTableName => ();
+
+Select: () = {
+	"select" => (), // TODO
+};
+
 //Delete = {
 //	
 //};
