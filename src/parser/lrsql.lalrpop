@@ -30,9 +30,10 @@ pub Cmd = {
 	Release,
 };
 
-Begin: () = {
-	"begin" TransactionType? ("transaction" Name?)? => ()
-};
+TransactionName = "Id";
+
+Begin: () =
+	"begin" TransactionType? ("transaction" TransactionName?)? => ();
 TransactionType = {
 	"deferred",
 	"immediate",
@@ -40,42 +41,42 @@ TransactionType = {
 };
 
 Commit: () = {
-	"commit" ("transaction" Name?)? => (),
-	"end" ("transaction" Name?)? => (),
+	"commit" ("transaction" TransactionName?)? => (),
+	"end" ("transaction" TransactionName?)? => (),
 };
 
 Rollback: () = {
-	"rollback" ("transaction" Name?)? => (),
-	"rollback" ("transaction" Name?)? "to" "savepoint"? Name => ()
+	"rollback" ("transaction" TransactionName?)? => (),
+	"rollback" ("transaction" TransactionName?)? "to" "savepoint"? SavepointName => ()
 };
 
-Savepoint: () = {
-	"savepoint" Name => ()
-};
-Release: () = {
-	"release" "savepoint"? Name => (),
-};
+SavepointName = "Id";
+
+Savepoint: () =
+	"savepoint" SavepointName => ();
+Release: () =
+	"release" "savepoint"? SavepointName => ();
+
+DatabaseName = "Id";
+TableName = "Id";
 
 CreateTable: () = {
 	CreateTableStart "(" CommaList<Column> CommaList<NamedTableConstraint>? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
 //	CreateTableStart "as" Select => ()
 };
-CreateTableStart: () = {
-	"create" "temp"? "table" ("if" "not" "exists")? QualifiedTableName => ()
-};
+CreateTableStart: () =
+	"create" "temp"? "table" ("if" "not" "exists")? QualifiedTableName => ();
 
-Column: () = {
-	Name TypeName? (("constraint" Name)? ColumnConstraint)* => ()
-};
-
-Name = {
-	"Id",
+ColumnName = "Id";
 	// TODO "StringLiteral",
 	// TODO "cross", "inner", left", "natural", "outer", "right"
-};
-QualifiedTableName: () = {
-	(Name ".")? Name => ()
-};
+ConstraintName = "Id";
+
+Column: () =
+	ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
+
+QualifiedTableName: () =
+	(DatabaseName ".")? TableName => ();
 TypeName: () = {
 	"Id"+ => (),
 	"Id"+ "(" SignedNumber ")" => (),
@@ -90,19 +91,20 @@ NumericLiteral: () = {
 	"Float" => (),
 };
 
+CollationName = "Id";
+
 ColumnConstraint: () = {
 	"primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
 	"not"? "null" ConflictClause? => (),
 	"unique" ConflictClause? => (),
 	"check" "(" Expr ")" => (),
 	"default" DefaultValue => (),
-	"collate" "Id" => (),
+	"collate" CollationName => (),
 	ForeignKeyClause => (),
 };
 
-ConflictClause: () = {
-	"on" "conflict" ResolveType => ()
-};
+ConflictClause: () =
+	"on" "conflict" ResolveType => ();
 ResolveType = {
 	"rollback",
 	"abort",
@@ -117,13 +119,12 @@ DefaultValue: () = {
 	"(" Expr ")" => (),
 };
 
-ForeignKeyClause: () = {
-	"references" Name ("(" CommaList<Name> ")")? RefArg* DeferSubclause? => (),
-};
+ForeignKeyClause: () =
+	"references" TableName ("(" CommaList<ColumnName> ")")? RefArg* DeferSubclause? => ();
 RefArg: () = {
 	"on" "delete" RefAct => (),
 	"on" "update" RefAct => (),
-	"match" Name => (),
+	"match" "Id" => (),
 };
 RefAct: () = {
 	"set" "null" => (),
@@ -132,9 +133,8 @@ RefAct: () = {
 	"restrict" => (),
 	"no" "action" => (),
 };
-DeferSubclause: () = {
-	"not"? "deferred" InitDeferredPred? => ()
-};
+DeferSubclause: () =
+	"not"? "deferrable" InitDeferredPred? => ();
 InitDeferredPred: () = {
 	"initially" "deferred" => (),
 	"initially" "immediate" => (),
@@ -155,18 +155,16 @@ SortOrder = {
 	"desc"
 };
 
-NamedTableConstraint: () = {
-	("constraint" Name)? TableConstraint => ()
-};
+NamedTableConstraint: () =
+	("constraint" ConstraintName)? TableConstraint => ();
 TableConstraint: () = {
 	"primary" "key" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
 	"unique" "(" CommaList<IndexedColumn> ")" ConflictClause? => (),
 	"check" "(" Expr ")" => (),
-	"foreign" "key" "(" CommaList<Name> ")" ForeignKeyClause => (),
+	"foreign" "key" "(" CommaList<ColumnName> ")" ForeignKeyClause => (),
 };
-IndexedColumn: () = {
-	Name ("collate" "Id")? SortOrder? => (),
-};
+IndexedColumn: () =
+	ColumnName ("collate" CollationName)? SortOrder? => ();
 
 Expr: () = {
 	LiteralValue => (),
