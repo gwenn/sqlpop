@@ -1,0 +1,286 @@
+use tok::{self, Tok};
+
+grammar<'input>(text: &'input str);
+
+pub CmdList: Vec<()> = {
+	<v:(<Cmd> ";")*> <c:Cmd?> => match c {
+		None => v,
+		Some(c) => {
+			let mut v = v;
+			v.push(c);
+			v
+		}
+	}
+};
+
+pub Cmd = {
+	// TODO ("explain" ("query" "plan")? )?
+	Begin,
+	Commit,
+	Rollback,
+};
+
+Begin: () = {
+	"begin" TransactionType? ("transaction" Name?)? => ()
+};
+TransactionType = {
+	"deferred",
+	"immediate",
+	"exclusive",
+};
+
+Commit: () = {
+	"commit" ("transaction" Name?)? => ()
+};
+Rollback: () = {
+	"rollback" ("transaction" Name?)? => ()
+};
+
+Name = {
+	"Id",
+	"StringLiteral",
+	// TODO JOIN_KW
+};
+
+//SavePoint = {
+//	
+//};
+//Release = {
+//	
+//};
+//
+//CreateTable = {
+//	
+//};
+//DropTable = {
+//	
+//};
+//
+//CreateView = {
+//	
+//};
+//DropView = {
+//	
+//};
+//
+//Select = {
+//	
+//};
+//
+//Delete = {
+//	
+//};
+//
+//Update = {
+//	
+//};
+//
+//Insert = {
+//	
+//};
+//
+//CreateIndex = {
+//	
+//};
+//DropIndex = {
+//	
+//};
+//
+//Vacuum = {
+//	
+//};
+//
+//Pragma = {
+//	
+//};
+//
+//CreateTrigger = {
+//	
+//};
+//DropTrigger = {
+//	
+//};
+//
+//Attach = {
+//	
+//};
+//Detach = {
+//	
+//};
+//
+//Reindex = {
+//	
+//};
+//
+//Analyze = {
+//	
+//};
+//
+//AlterTable = {
+//	
+//};
+//
+//CreateVirtualTable = {
+//	
+//};
+
+extern {
+    type Location = usize;
+    type Error = tok::Error;
+    enum Tok<'input> {
+				"abort" => Tok::Abort,
+				"action" => Tok::Action,
+				"add" => Tok::Add,
+				"after" => Tok::After,
+				"all" => Tok::All,
+				"alter" => Tok::Alter,
+				"analyze" => Tok::Analyze,
+				"and" => Tok::And,
+				"as" => Tok::As,
+				"asc" => Tok::Asc,
+				"attach" => Tok::Attach,
+				"autoincrement" => Tok::Autoincr,
+				"before" => Tok::Before,
+				"begin" => Tok::Begin,
+				"between" => Tok::Between,
+				"by" => Tok::By,
+				"cascade" => Tok::Cascade,
+				"case" => Tok::Case,
+				"cast" => Tok::Cast,
+				"check" => Tok::Check,
+				"collate" => Tok::Collate,
+				"column" => Tok::ColumnKw,
+				"commit" => Tok::Commit,
+				"conflict" => Tok::Conflict,
+				"constraint" => Tok::Constraint,
+				"create" => Tok::Create,
+				"cross" => Tok::JoinKw,
+				"current_date" => Tok::CtimeKw,
+				"current_time" => Tok::CtimeKw,
+				"current_timestamp" => Tok::CtimeKw,
+				"database" => Tok::Database,
+				"default" => Tok::Default,
+				"deferrable" => Tok::Deferrable,
+				"deferred" => Tok::Deferred,
+				"delete" => Tok::Delete,
+				"desc" => Tok::Desc,
+				"detach" => Tok::Detach,
+				"distinct" => Tok::Distinct,
+				"drop" => Tok::Drop,
+				"each" => Tok::Each,
+				"else" => Tok::Else,
+				"end" => Tok::End,
+				"escape" => Tok::Escape,
+				"except" => Tok::Except,
+				"exclusive" => Tok::Exclusive,
+				"exists" => Tok::Exists,
+				"explain" => Tok::Explain,
+				"fail" => Tok::Fail,
+				"for" => Tok::For,
+				"foreign" => Tok::Foreign,
+				"from" => Tok::From,
+				"full" => Tok::JoinKw,
+				"glob" => Tok::LikeKw,
+				"group" => Tok::Group,
+				"having" => Tok::Having,
+				"if" => Tok::If,
+				"ignore" => Tok::Ignore,
+				"immediate" => Tok::Immediate,
+				"in" => Tok::In,
+				"index" => Tok::Index,
+				"indexed" => Tok::Indexed,
+				"initially" => Tok::Initially,
+				"inner" => Tok::JoinKw,
+				"insert" => Tok::Insert,
+				"instead" => Tok::Instead,
+				"intersect" => Tok::Intersect,
+				"into" => Tok::Into,
+				"is" => Tok::Is,
+				"isnull" => Tok::IsNull,
+				"join" => Tok::JoinKw,
+				"key" => Tok::Key,
+				"left" => Tok::JoinKw,
+				"like" => Tok::LikeKw,
+				"limit" => Tok::Limit,
+				"match" => Tok::Match,
+				"natural" => Tok::JoinKw,
+				"no" => Tok::No,
+				"not" => Tok::Not,
+				"notnull" => Tok::NotNull,
+				"null" => Tok::Null,
+				"of" => Tok::Of,
+				"offset" => Tok::Offset,
+				"on" => Tok::On,
+				"or" => Tok::Or,
+				"order" => Tok::Order,
+				"outer" => Tok::JoinKw,
+				"plan" => Tok::Plan,
+				"pragma" => Tok::Pragma,
+				"primary" => Tok::Primary,
+				"query" => Tok::Query,
+				"raise" => Tok::Raise,
+				"recursive" => Tok::Recursive,
+				"references" => Tok::References,
+				"regexp" => Tok::LikeKw,
+				"reindex" => Tok::Reindex,
+				"release" => Tok::Release,
+				"rename" => Tok::Rename,
+				"replace" => Tok::Replace,
+				"restrict" => Tok::Restrict,
+				"right" => Tok::JoinKw,
+				"rollback" => Tok::Rollback,
+				"row" => Tok::Row,
+				"savepoint" => Tok::Savepoint,
+				"select" => Tok::Select,
+				"set" => Tok::Set,
+				"table" => Tok::Table,
+				"temp" => Tok::Temp,
+				"temporary" => Tok::Temp,
+				"then" => Tok::Then,
+				"to" => Tok::To,
+				"transaction" => Tok::Transaction,
+				"trigger" => Tok::Trigger,
+				"union" => Tok::Union,
+				"unique" => Tok::Unique,
+				"update" => Tok::Update,
+				"using" => Tok::Using,
+				"vacuum" => Tok::Vacuum,
+				"values" => Tok::Values,
+				"view" => Tok::View,
+				"virtual" => Tok::Virtual,
+				"when" => Tok::When,
+				"where" => Tok::Where,
+				"with" => Tok::With,
+				"without" => Tok::Without,
+
+        "StringLiteral" => Tok::StringLiteral(<&'input str>),
+        "Id" => Tok::Id(<&'input str>),
+        "Variable" => Tok::Variable(<&'input str>),
+
+        "Blob" => Tok::Blob(<&'input str>),
+        "Integer" => Tok::Integer(<&'input str>),
+        "Float" => Tok::Float(<&'input str>),
+
+        "&" => Tok::BitAnd,
+        "~" => Tok::BitNot,
+        "|" => Tok::BitOr,
+        "," => Tok::Comma,
+        "." => Tok::Dot,
+        "=" => Tok::Equals,
+        ">" => Tok::GreaterThan,
+        "=>" => Tok::GreaterEquals,
+        "(" => Tok::LeftParen,
+        "<<" => Tok::LeftShift,
+        "<=" => Tok::LessEquals,
+        "<" => Tok::LessThan,
+        "+" => Tok::Minus,
+        "<>" => Tok::NotEquals,
+        "+" => Tok::Plus,
+        "%" => Tok::Reminder,
+        ")" => Tok::RightParen,
+        ">>" => Tok::RightShift,
+        ";" => Tok::Semi,
+        "/" => Tok::Slash,
+        "*" => Tok::Star,
+    }
+}
