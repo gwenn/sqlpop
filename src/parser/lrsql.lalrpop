@@ -181,7 +181,7 @@ DropTable: () =
 	"drop" "table" ("if" "exists")? QualifiedTableName => ();
 
 CreateView: () =
-	"create" "temp"? "view" ("if" "not" "exists")? QualifiedTableName "(" CommaList<IndexedColumn> ")" "as" Select => ();
+	"create" "temp"? "view" ("if" "not" "exists")? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
 DropView: () =
 	"drop" "view" ("if" "exists")? QualifiedTableName => ();
 
