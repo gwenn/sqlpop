@@ -10,6 +10,8 @@ CommaList<T>: Vec<T> = {
 		v
 	},
 };
+Qualified<T>: () =
+	(DatabaseName ".")? T => ();
 
 pub CmdList: Vec<()> = {
 	<v:(<Cmd> ";")*> <c:Cmd?> => match c {
@@ -36,6 +38,8 @@ pub Cmd: () = {
 	Delete,
 	Update,
 	Insert,
+	CreateIndex,
+	DropIndex,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -75,7 +79,7 @@ CreateTable: () = {
 	CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
-	"create" "temp"? "table" (IfNotExists)? QualifiedTableName => ();
+	"create" "temp"? "table" IfNotExists? QualifiedTableName => ();
 
 IfNotExists: () =
 	"if" "not" "exists" => ();
@@ -89,8 +93,7 @@ Column: () =
 	ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
 
 // fullname
-QualifiedTableName: () =
-	(DatabaseName ".")? TableName => ();
+QualifiedTableName = Qualified<TableName>;
 TypeName: () = {
 	"Id"+ => (),
 	"Id"+ "(" SignedNumber ")" => (),
@@ -190,15 +193,15 @@ Expr: () = {
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
 DropTable: () =
-	"drop" "table" (IfExists)? QualifiedTableName => ();
+	"drop" "table" IfExists? QualifiedTableName => ();
 IfExists: () =
 	"if" "exists" => ();
 
 ///////////////////// The CREATE VIEW statement /////////////////////////////
 CreateView: () =
-	"create" "temp"? "view" (IfNotExists)? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
+	"create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
 DropView: () =
-	"drop" "view" (IfExists)? QualifiedTableName => ();
+	"drop" "view" IfExists? QualifiedTableName => ();
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () = {
@@ -247,14 +250,12 @@ InsertCmd: () = {
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
-//CreateIndex = {
-//	
-//};
+CreateIndex: () =
+	"create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
 ///////////////////////////// The DROP INDEX command /////////////////////////
-//DropIndex = {
-//	
-//};
-//
+DropIndex: () =
+	"drop" "index" IfExists? Qualified<IndexName> => ();
+
 ///////////////////////////// The VACUUM command /////////////////////////////
 //Vacuum = {
 //	
