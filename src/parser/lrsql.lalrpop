@@ -34,6 +34,8 @@ pub Cmd: () = {
 	CreateView,
 	DropView,
 	Delete,
+	Update,
+	Insert,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -223,20 +225,27 @@ Limit: () = {
 };
 
 /////////////////////////// The DELETE statement /////////////////////////////
-Delete: () = {
-	With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => (),
-};
-//
+Delete: () =
+	With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
+
 ////////////////////////// The UPDATE command ////////////////////////////////
-//Update = {
-//	
-//};
-//
+Update: () =
+	With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
+OrConflict:() =
+	"or" ResolveType => ();
+Set:() =
+	ColumnName "=" Expr => ();
+
 ////////////////////////// The INSERT command /////////////////////////////////
-//Insert = {
-//	
-//};
-//
+Insert: () = {
+	With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? Select => (),
+	With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? "default" "values" => (),
+};
+InsertCmd: () = {
+	"insert" OrConflict? => (),
+	"replace" => (),
+};
+
 ///////////////////////////// The CREATE INDEX command ///////////////////////
 //CreateIndex = {
 //	
