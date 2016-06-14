@@ -3,11 +3,12 @@ use tok::{self, Tok};
 grammar<'input>(text: &'input str);
 
 CommaList<T>: Vec<T> = {
-	<head:T> <tail:("," <T>)*> => {
-		let mut v = vec![head];
-		v.extend_from_slice(&tail);
+	T => vec![<>],
+	<v:CommaList<T>> "," <e:T> => {
+		let mut v = v;
+		v.push(e);
 		v
-	}
+	},
 };
 
 pub CmdList: Vec<()> = {
@@ -21,7 +22,7 @@ pub CmdList: Vec<()> = {
 	}
 };
 
-pub Cmd = {
+pub Cmd: () = {
 	// TODO ("explain" ("query" "plan")? )?
 	Begin,
 	Commit,
@@ -32,8 +33,10 @@ pub Cmd = {
 	DropTable,
 	CreateView,
 	DropView,
+	Delete,
 };
 
+///////////////////// Begin and end transactions. ////////////////////////////
 TransactionName = "Id";
 
 Begin: () =
@@ -61,6 +64,7 @@ Savepoint: () =
 Release: () =
 	"release" "savepoint"? SavepointName => ();
 
+///////////////////// The CREATE TABLE statement ////////////////////////////
 DatabaseName = "Id";
 TableName = "Id";
 
@@ -69,7 +73,10 @@ CreateTable: () = {
 	CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
-	"create" "temp"? "table" ("if" "not" "exists")? QualifiedTableName => ();
+	"create" "temp"? "table" (IfNotExists)? QualifiedTableName => ();
+
+IfNotExists: () =
+	"if" "not" "exists" => ();
 
 ColumnName = "Id";
 	// TODO "StringLiteral",
@@ -79,6 +86,7 @@ ConstraintName = "Id";
 Column: () =
 	ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
 
+// fullname
 QualifiedTableName: () =
 	(DatabaseName ".")? TableName => ();
 TypeName: () = {
@@ -172,57 +180,92 @@ SortedColumn: () =
 IndexedColumn: () =
 	ColumnName ("collate" CollationName)? SortOrder? => ();
 
+/////////////////////////// Expression Processing /////////////////////////////
 Expr: () = {
 	LiteralValue => (),
 	// TODO
 };
 
+////////////////////////// The DROP TABLE /////////////////////////////////////
 DropTable: () =
-	"drop" "table" ("if" "exists")? QualifiedTableName => ();
+	"drop" "table" (IfExists)? QualifiedTableName => ();
+IfExists: () =
+	"if" "exists" => ();
 
+///////////////////// The CREATE VIEW statement /////////////////////////////
 CreateView: () =
-	"create" "temp"? "view" ("if" "not" "exists")? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
+	"create" "temp"? "view" (IfNotExists)? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
 DropView: () =
-	"drop" "view" ("if" "exists")? QualifiedTableName => ();
+	"drop" "view" (IfExists)? QualifiedTableName => ();
 
+//////////////////////// The SELECT statement /////////////////////////////////
 Select: () = {
 	"select" => (), // TODO
 };
 
-//Delete = {
-//	
-//};
+IndexName = "Id";
+
+Indexed: () = {
+	"indexed" "by" IndexName => (),
+	"not" "indexed" => (),
+};
+
+Where: () =
+	"where" Expr => ();
+
+OrderBy: () =
+	"order" "by" CommaList<SortedColumn> => ();
+
+Limit: () = {
+	"limit" Expr => (),
+	"limit" Expr "offset" Expr => (),
+	"limit" Expr "," Expr => (),
+};
+
+/////////////////////////// The DELETE statement /////////////////////////////
+Delete: () = {
+	With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => (),
+};
 //
+////////////////////////// The UPDATE command ////////////////////////////////
 //Update = {
 //	
 //};
 //
+////////////////////////// The INSERT command /////////////////////////////////
 //Insert = {
 //	
 //};
 //
+///////////////////////////// The CREATE INDEX command ///////////////////////
 //CreateIndex = {
 //	
 //};
+///////////////////////////// The DROP INDEX command /////////////////////////
 //DropIndex = {
 //	
 //};
 //
+///////////////////////////// The VACUUM command /////////////////////////////
 //Vacuum = {
 //	
 //};
 //
+///////////////////////////// The PRAGMA command /////////////////////////////
 //Pragma = {
 //	
 //};
 //
+//////////////////////////// The CREATE TRIGGER command /////////////////////
 //CreateTrigger = {
 //	
 //};
+////////////////////////  DROP TRIGGER statement //////////////////////////////
 //DropTrigger = {
 //	
 //};
 //
+//////////////////////// ATTACH DATABASE file AS name /////////////////////////
 //Attach = {
 //	
 //};
@@ -230,21 +273,31 @@ Select: () = {
 //	
 //};
 //
+////////////////////////// REINDEX collation //////////////////////////////////
 //Reindex = {
 //	
 //};
 //
+/////////////////////////////////// ANALYZE ///////////////////////////////////
 //Analyze = {
 //	
 //};
 //
+//////////////////////// ALTER TABLE table ... ////////////////////////////////
 //AlterTable = {
 //	
 //};
 //
+//////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
 //CreateVirtualTable = {
 //	
 //};
+
+//////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
+With: () =
+	"with" "recursive"? CommaList<WithQuery> => ();
+WithQuery: () =
+	TableName ("(" CommaList<IndexedColumn> ")")? "as" "(" Select ")" => ();
 
 extern {
     type Location = usize;
