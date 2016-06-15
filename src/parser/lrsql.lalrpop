@@ -14,18 +14,24 @@ Qualified<T>: () =
 	(DatabaseName ".")? T => ();
 
 pub CmdList: Vec<()> = {
-	<v:(<Cmd> ";")*> <c:Cmd?> => match c {
-		None => v,
-		Some(c) => {
-			let mut v = v;
-			v.push(c);
-			v
-		}
-	}
+	ExplainCmd => vec![<>],
+	<v:CmdList> <e:ExplainCmd> => {
+		let mut v = v;
+		v.push(e);
+		v
+	},
+};
+// FIXME SQLite C lexer transforms the EOF into a ";" if the it is missing but not the Rust lexer...
+pub ExplainCmd: () = {
+	";" => (),
+	Explain Cmd ";" => (),
+};
+Explain: () = {
+	"explain" => (),
+	"explain" "query" "plan" => (),
 };
 
 pub Cmd: () = {
-	// TODO ("explain" ("query" "plan")? )?
 	Begin,
 	Commit,
 	Rollback,
@@ -42,6 +48,8 @@ pub Cmd: () = {
 	DropIndex,
 	Vacuum,
 	Pragma,
+	CreateTrigger,
+	DropTrigger,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -290,14 +298,42 @@ PragmaValue: () = {
 };
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
-//CreateTrigger = {
-//	
-//};
+TriggerName = "Id";
+
+CreateTrigger: () =
+	"create" TriggerDecl "begin" TriggerCmdList "end" => ();
+TriggerDecl: () =
+	"temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
+TriggerTime: () = {
+	"before" => (),
+	"after" => (),
+	"instead" "of" => (),
+};
+TriggerEvent: () = {
+	"delete" => (),
+	"insert" => (),
+	"update" => (),
+	"update" "of" CommaList<ColumnName> => (),
+};
+ForEachRow: () =
+	"for" "each" "row" => ();
+WhenClause: () =
+	"when" Expr => ();
+TriggerCmdList: () = {
+	TriggerCmdList TriggerCmd ";" => (),
+	TriggerCmd ";" => (),
+};
+// Disallow qualified table names on INSERT, UPDATE, and DELETE statements
+// within a trigger.  The table to INSERT, UPDATE, or DELETE is always in
+// the same database as the table that the trigger fires on.
+TriggerCmd: () = {
+	"update" => (), // TODO
+};
+
 ////////////////////////  DROP TRIGGER statement //////////////////////////////
-//DropTrigger = {
-//	
-//};
-//
+DropTrigger: () =
+	"drop" "trigger" IfExists? Qualified<TriggerName> => ();
+
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
 //Attach = {
 //	
