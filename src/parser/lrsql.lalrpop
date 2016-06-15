@@ -40,6 +40,8 @@ pub Cmd: () = {
 	Insert,
 	CreateIndex,
 	DropIndex,
+	Vacuum,
+	Pragma,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -100,9 +102,15 @@ TypeName: () = {
 	"Id"+ "(" SignedNumber "," SignedNumber ")" => (),
 };
 SignedNumber: () = {
-	"+"? NumericLiteral => (),
-	"-" NumericLiteral => (),
+	PlusNumber => (),
+	MinusNumber => (),
 };
+PlusNumber: () = {
+	"+" NumericLiteral => (),
+	NumericLiteral => (),
+};
+MinusNumber: () =
+	"-" NumericLiteral => ();
 NumericLiteral: () = {
 	"Integer" => (),
 	"Float" => (),
@@ -257,15 +265,30 @@ DropIndex: () =
 	"drop" "index" IfExists? Qualified<IndexName> => ();
 
 ///////////////////////////// The VACUUM command /////////////////////////////
-//Vacuum = {
-//	
-//};
-//
+Vacuum: () = {
+	"vacuum" => (),
+	"vacuum"  DatabaseName => (),
+};
+
 ///////////////////////////// The PRAGMA command /////////////////////////////
-//Pragma = {
-//	
-//};
-//
+PragmaName = "Id";
+
+Pragma: () = {
+	"pragma" Qualified<PragmaName> => (),
+	"pragma" Qualified<PragmaName> "=" PragmaValue => (),
+	"pragma" Qualified<PragmaName> "(" PragmaValue ")" => (),
+	"pragma" Qualified<PragmaName> "=" MinusNumber => (),
+	"pragma" Qualified<PragmaName> "(" MinusNumber ")" => (),
+};
+
+PragmaValue: () = {
+	PlusNumber => (),
+	"Id" => (),
+	"on" => (),
+	"delete" => (),
+	"default" => (),
+};
+
 //////////////////////////// The CREATE TRIGGER command /////////////////////
 //CreateTrigger = {
 //	
