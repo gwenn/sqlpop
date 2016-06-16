@@ -50,6 +50,12 @@ pub Cmd: () = {
 	Pragma,
 	CreateTrigger,
 	DropTrigger,
+	Attach,
+	Detach,
+	Reindex,
+	Analyze,
+//	AlterTable,
+	CreateVirtualTable,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -335,32 +341,39 @@ DropTrigger: () =
 	"drop" "trigger" IfExists? Qualified<TriggerName> => ();
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
-//Attach = {
-//	
-//};
-//Detach = {
-//	
-//};
-//
+Attach: () =
+	"attach" "database"? Expr "as" Expr ("key" Expr)? => ();
+Detach: () =
+	"detach" "database"? Expr => ();
+
 ////////////////////////// REINDEX collation //////////////////////////////////
-//Reindex = {
-//	
-//};
-//
+Reindex: () = {
+	"reindex" => (),
+	"reindex" QualifiedTableName => (),
+};
+
 /////////////////////////////////// ANALYZE ///////////////////////////////////
-//Analyze = {
-//	
-//};
-//
+Analyze: () = {
+	"analyze" => (),
+	"analyze" QualifiedTableName => (),
+};
+
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
-//AlterTable = {
-//	
-//};
-//
+AlterTable: () = {
+	"alter" "table" QualifiedTableName "rename" "to" TableName => (),
+	"alter" "table" QualifiedTableName "add" "column"? Column => (),
+};
+
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
-//CreateVirtualTable = {
-//	
-//};
+CreateVirtualTable: () =
+	"create" "virtual" "table" IfNotExists? QualifiedTableName "using" "Id" => (); // TODO ("(" CommaList<VirtualTableArg>? ")")? => ();
+
+VirtualTableArg: () = {
+	"StringLiteral" => (),
+	"Id" => (),
+	NumericLiteral => (),
+	// TODO ANY
+};
 
 //////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
 With: () =
