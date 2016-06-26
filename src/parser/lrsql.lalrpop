@@ -371,7 +371,7 @@ AlterTable: () = {
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
 CreateVirtualTable: () =
-	"create" "virtual" "table" IfNotExists? QualifiedTableName "using" "Id" => (); // TODO ("(" CommaList<VirtualTableArg>? ")")? => ();
+	"create" "virtual" "table" IfNotExists? QualifiedTableName "using" ("(" CommaList<VirtualTableArg>? ")")? => ();
 
 VirtualTableArg: () = {
 	"StringLiteral" => (),
