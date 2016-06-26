@@ -3,623 +3,623 @@ use tok::{self, Tok};
 grammar<'input>(text: &'input str)["LALR(1)"];
 
 CommaList<T>: Vec<T> = {
-	T => vec![<>],
-	<v:CommaList<T>> "," <e:T> => {
-		let mut v = v;
-		v.push(e);
-		v
-	},
+    T => vec![<>],
+    <v:CommaList<T>> "," <e:T> => {
+        let mut v = v;
+        v.push(e);
+        v
+    },
 };
 Qualified<T>: () =
-	(DatabaseName ".")? T => ();
+    (DatabaseName ".")? T => ();
 
 pub CmdList: Vec<Option<()>> = {
-	<v:(<ExplainCmd?> ";")*> <e:ExplainCmd?> => match e {
-		None => v,
-		e => {
-			let mut v = v;
-			v.push(e);
-			v
-		}
-	}
+    <v:(<ExplainCmd?> ";")*> <e:ExplainCmd?> => match e {
+        None => v,
+        e => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
 };
 
 pub ExplainCmd: () =
-	Explain? Cmd => ();
+    Explain? Cmd => ();
 Explain: () = {
-	"explain" => (),
-	"explain" "query" "plan" => (),
+    "explain" => (),
+    "explain" "query" "plan" => (),
 };
 
 pub Cmd: () = {
-	Begin,
-	Commit,
-	Rollback,
-	Savepoint,
-	Release,
-	CreateTable,
-	DropTable,
-	CreateView,
-	DropView,
-	Select,
-	Delete,
-	Update,
-	Insert,
-	CreateIndex,
-	DropIndex,
-	Vacuum,
-	Pragma,
-	CreateTrigger,
-	DropTrigger,
-	Attach,
-	Detach,
-	Reindex,
-	Analyze,
-	AlterTable,
-	CreateVirtualTable,
+    Begin,
+    Commit,
+    Rollback,
+    Savepoint,
+    Release,
+    CreateTable,
+    DropTable,
+    CreateView,
+    DropView,
+    Select,
+    Delete,
+    Update,
+    Insert,
+    CreateIndex,
+    DropIndex,
+    Vacuum,
+    Pragma,
+    CreateTrigger,
+    DropTrigger,
+    Attach,
+    Detach,
+    Reindex,
+    Analyze,
+    AlterTable,
+    CreateVirtualTable,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
 TransactionName = "Id";
 
 Begin: () =
-	"begin" TransactionType? ("transaction" TransactionName?)? => ();
+    "begin" TransactionType? ("transaction" TransactionName?)? => ();
 TransactionType = {
-	"deferred",
-	"immediate",
-	"exclusive",
+    "deferred",
+    "immediate",
+    "exclusive",
 };
 
 Commit: () = {
-	"commit" ("transaction" TransactionName?)? => (),
-	"end" ("transaction" TransactionName?)? => (),
+    "commit" ("transaction" TransactionName?)? => (),
+    "end" ("transaction" TransactionName?)? => (),
 };
 
 Rollback: () = {
-	"rollback" ("transaction" TransactionName?)? => (),
-	"rollback" ("transaction" TransactionName?)? "to" "savepoint"? SavepointName => ()
+    "rollback" ("transaction" TransactionName?)? => (),
+    "rollback" ("transaction" TransactionName?)? "to" "savepoint"? SavepointName => ()
 };
 
 SavepointName = "Id";
 
 Savepoint: () =
-	"savepoint" SavepointName => ();
+    "savepoint" SavepointName => ();
 Release: () =
-	"release" "savepoint"? SavepointName => ();
+    "release" "savepoint"? SavepointName => ();
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 DatabaseName = "Id";
 TableName = "Id";
 
 CreateTable: () = {
-	CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
-	CreateTableStart "as" Select => (),
+    CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
+    CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
-	"create" "temp"? "table" IfNotExists? QualifiedTableName => ();
+    "create" "temp"? "table" IfNotExists? QualifiedTableName => ();
 
 IfNotExists: () =
-	"if" "not" "exists" => ();
+    "if" "not" "exists" => ();
 
 ColumnName = "Id";
-	// TODO "StringLiteral",
-	// TODO "cross", "inner", left", "natural", "outer", "right"
+    // TODO "StringLiteral",
+    // TODO "cross", "inner", left", "natural", "outer", "right"
 ConstraintName = "Id";
 
 ColumnDef: () =
-	ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
+    ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
 
 // fullname
 QualifiedTableName = Qualified<TableName>;
 TypeName: () = {
-	"Id"+ => (),
-	"Id"+ "(" SignedNumber ")" => (),
-	"Id"+ "(" SignedNumber "," SignedNumber ")" => (),
+    "Id"+ => (),
+    "Id"+ "(" SignedNumber ")" => (),
+    "Id"+ "(" SignedNumber "," SignedNumber ")" => (),
 };
 SignedNumber: () = {
-	PlusNumber => (),
-	MinusNumber => (),
+    PlusNumber => (),
+    MinusNumber => (),
 };
 PlusNumber: () = {
-	"+" NumericLiteral => (),
-	NumericLiteral => (),
+    "+" NumericLiteral => (),
+    NumericLiteral => (),
 };
 MinusNumber: () =
-	"-" NumericLiteral => ();
+    "-" NumericLiteral => ();
 NumericLiteral: () = {
-	"Integer" => (),
-	"Float" => (),
+    "Integer" => (),
+    "Float" => (),
 };
 
 CollationName = "Id";
 
 ColumnConstraint: () = {
-	"primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
-	"not"? "null" ConflictClause? => (),
-	"unique" ConflictClause? => (),
-	"check" "(" Expr ")" => (),
-	"default" DefaultValue => (),
-	"collate" CollationName => (),
-//	ForeignKeyClause => (), // FIXME ambiguity: "not" in DeferSubclause vs "not" "null"
+    "primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
+    "not"? "null" ConflictClause? => (),
+    "unique" ConflictClause? => (),
+    "check" "(" Expr ")" => (),
+    "default" DefaultValue => (),
+    "collate" CollationName => (),
+//    ForeignKeyClause => (), // FIXME ambiguity: "not" in DeferSubclause vs "not" "null"
 };
 
 ConflictClause: () =
-	"on" "conflict" ResolveType => ();
+    "on" "conflict" ResolveType => ();
 ResolveType = {
-	"rollback",
-	"abort",
-	"fail",
-	"ignore",
-	"replace",
+    "rollback",
+    "abort",
+    "fail",
+    "ignore",
+    "replace",
 };
 
 DefaultValue: () = {
-	"+" NumericLiteral => (), // Ambiguous grammar with SignedNumber and LiteralValue
-	"-" NumericLiteral => (),
-	LiteralValue => (),
-	"(" Expr ")" => (),
+    "+" NumericLiteral => (), // Ambiguous grammar with SignedNumber and LiteralValue
+    "-" NumericLiteral => (),
+    LiteralValue => (),
+    "(" Expr ")" => (),
 };
 
 ForeignKeyClause: () =
-	"references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => ();
+    "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => ();
 RefArg: () = {
-	"on" "delete" RefAct => (),
-	"on" "update" RefAct => (),
-	"match" "Id" => (),
+    "on" "delete" RefAct => (),
+    "on" "update" RefAct => (),
+    "match" "Id" => (),
 };
 RefAct: () = {
-	"set" "null" => (),
-	"set" "default" => (),
-	"cascade" => (),
-	"restrict" => (),
-	"no" "action" => (),
+    "set" "null" => (),
+    "set" "default" => (),
+    "cascade" => (),
+    "restrict" => (),
+    "no" "action" => (),
 };
 DeferSubclause: () =
-	"not"? "deferrable" InitDeferredPred? => ();
+    "not"? "deferrable" InitDeferredPred? => ();
 InitDeferredPred: () = {
-	"initially" "deferred" => (),
-	"initially" "immediate" => (),
+    "initially" "deferred" => (),
+    "initially" "immediate" => (),
 };
 
 LiteralValue: () = {
-	NumericLiteral => (),
-	"StringLiteral" => (),
-	"Blob" => (),
-	"null" => (),
-	"current_date" => (),
-	"current_time" => (),
-	"current_timestamp" => (),
+    NumericLiteral => (),
+    "StringLiteral" => (),
+    "Blob" => (),
+    "null" => (),
+    "current_date" => (),
+    "current_time" => (),
+    "current_timestamp" => (),
 };
 
 SortOrder = {
-	"asc",
-	"desc"
+    "asc",
+    "desc"
 };
 
 NamedTableConstraint: () =
-	("constraint" ConstraintName)? TableConstraint => ();
+    ("constraint" ConstraintName)? TableConstraint => ();
 TableConstraint: () = {
-	"primary" "key" "(" CommaList<SortedColumn> "autoincrement"? ")" ConflictClause? => (),
-	"unique" "(" CommaList<SortedColumn> ")" ConflictClause? => (),
-	"check" "(" Expr ")" => (),
-	"foreign" "key" "(" CommaList<IndexedColumn> ")" ForeignKeyClause => (),
+    "primary" "key" "(" CommaList<SortedColumn> "autoincrement"? ")" ConflictClause? => (),
+    "unique" "(" CommaList<SortedColumn> ")" ConflictClause? => (),
+    "check" "(" Expr ")" => (),
+    "foreign" "key" "(" CommaList<IndexedColumn> ")" ForeignKeyClause => (),
 };
 SortedColumn: () = // sortlist
-	Expr SortOrder? => ();
+    Expr SortOrder? => ();
 IndexedColumn: () = // eidlist
-	ColumnName ("collate" CollationName)? SortOrder? => ();
+    ColumnName ("collate" CollationName)? SortOrder? => ();
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: () = {
-	LiteralValue => (),
-	// TODO
+    LiteralValue => (),
+    // TODO
 };
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
 DropTable: () =
-	"drop" "table" IfExists? QualifiedTableName => ();
+    "drop" "table" IfExists? QualifiedTableName => ();
 IfExists: () =
-	"if" "exists" => ();
+    "if" "exists" => ();
 
 ///////////////////// The CREATE VIEW statement /////////////////////////////
 CreateView: () =
-	"create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
+    "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
 DropView: () =
-	"drop" "view" IfExists? QualifiedTableName => ();
+    "drop" "view" IfExists? QualifiedTableName => ();
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () =
-	With? SelectNoWith => ();
+    With? SelectNoWith => ();
 
 SelectNoWith: () = {
-	OneSelect => (),
-	SelectNoWith CompoundOperator OneSelect => (),
+    OneSelect => (),
+    SelectNoWith CompoundOperator OneSelect => (),
 };
 
 CompoundOperator: () = {
-		"union" => (),
-		"union" "all" => (),
-		"except" => (),
-		"intersect" => (),
+        "union" => (),
+        "union" "all" => (),
+        "except" => (),
+        "intersect" => (),
 };
 
 OneSelect: () = {
-	"select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? Having? OrderBy? Limit? => (),
-	Values => (),
+    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? Having? OrderBy? Limit? => (),
+    Values => (),
 };
 
 Distinct: () = {
-	"distinct" => (),
-	"all" => (),
+    "distinct" => (),
+    "all" => (),
 };
 
 SelectColumn: () = {
-	Expr As? => (),
-	"*" => (),
-	TableName "." "*" => (),
+    Expr As? => (),
+    "*" => (),
+    TableName "." "*" => (),
 };
 
 Values: () = {
-	"values" "(" CommaList<Expr> ")" => (),
-	Values "," "(" CommaList<Expr>? ")" => (),
+    "values" "(" CommaList<Expr> ")" => (),
+    Values "," "(" CommaList<Expr>? ")" => (),
 };
 
 As: () =
-	"as"? Alias => ();
+    "as"? Alias => ();
 
 Alias: () = {
-	"StringLiteral" => (),
-	"Id" => (),
+    "StringLiteral" => (),
+    "Id" => (),
 };
 
 From: () =
-	"from" SelectTableList => ();
+    "from" SelectTableList => ();
 
 SelectTableList: () = {
-	SelectTable => (),
-	SelectTableList JoinOperator SelectTable => (),
+    SelectTable => (),
+    SelectTableList JoinOperator SelectTable => (),
 };
 
 SelectTable: () = {
-	QualifiedTableName As? Indexed? On? Using? => (),
-	QualifiedTableName "(" CommaList<Expr>? ")" As? On? Using? => (),
-	"(" Select ")" As? On? Using? => (),
-	"(" SelectTableList ")" As? On? Using? => (),
+    QualifiedTableName As? Indexed? On? Using? => (),
+    QualifiedTableName "(" CommaList<Expr>? ")" As? On? Using? => (),
+    "(" Select ")" As? On? Using? => (),
+    "(" SelectTableList ")" As? On? Using? => (),
 };
 
 JoinOperator: () = {
-	"," => (),
-	"join" => (),
-	"natural"? JoinType "join" => (),
+    "," => (),
+    "join" => (),
+    "natural"? JoinType "join" => (),
 };
 JoinType: () = {
-	"left" "outer"? => (),
-	"inner" => (),
-	"cross" => (),
+    "left" "outer"? => (),
+    "inner" => (),
+    "cross" => (),
 };
 
 On: () =
-	"on" Expr => ();
+    "on" Expr => ();
 
 IndexName = "Id";
 
 Indexed: () = {
-	"indexed" "by" IndexName => (),
-	"not" "indexed" => (),
+    "indexed" "by" IndexName => (),
+    "not" "indexed" => (),
 };
 
 Using: () =
-	"using" "(" CommaList<ColumnName> ")" => ();
+    "using" "(" CommaList<ColumnName> ")" => ();
 
 Where: () =
-	"where" Expr => ();
+    "where" Expr => ();
 
 GroupBy: () =
-	"group" "by" CommaList<Expr> => ();
+    "group" "by" CommaList<Expr> => ();
 
 Having: () =
-	"having" Expr => ();
+    "having" Expr => ();
 
 OrderBy: () =
-	"order" "by" CommaList<SortedColumn> => ();
+    "order" "by" CommaList<SortedColumn> => ();
 
 Limit: () = {
-	"limit" Expr => (),
-	"limit" Expr "offset" Expr => (),
-	"limit" Expr "," Expr => (),
+    "limit" Expr => (),
+    "limit" Expr "offset" Expr => (),
+    "limit" Expr "," Expr => (),
 };
 
 /////////////////////////// The DELETE statement /////////////////////////////
 Delete: () =
-	With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
+    With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
 
 ////////////////////////// The UPDATE command ////////////////////////////////
 Update: () =
-	With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
+    With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
 OrConflict:() =
-	"or" ResolveType => ();
+    "or" ResolveType => ();
 Set:() =
-	ColumnName "=" Expr => ();
+    ColumnName "=" Expr => ();
 
 ////////////////////////// The INSERT command /////////////////////////////////
 Insert: () = {
-	With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? Select => (),
-	With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? "default" "values" => (),
+    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? Select => (),
+    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? "default" "values" => (),
 };
 InsertCmd: () = {
-	"insert" OrConflict? => (),
-	"replace" => (),
+    "insert" OrConflict? => (),
+    "replace" => (),
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
 CreateIndex: () =
-	"create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
+    "create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
 ///////////////////////////// The DROP INDEX command /////////////////////////
 DropIndex: () =
-	"drop" "index" IfExists? Qualified<IndexName> => ();
+    "drop" "index" IfExists? Qualified<IndexName> => ();
 
 ///////////////////////////// The VACUUM command /////////////////////////////
 Vacuum: () = {
-	"vacuum" => (),
-	"vacuum" DatabaseName => (),
+    "vacuum" => (),
+    "vacuum" DatabaseName => (),
 };
 
 ///////////////////////////// The PRAGMA command /////////////////////////////
 PragmaName = "Id";
 
 Pragma: () = {
-	"pragma" Qualified<PragmaName> => (),
-	"pragma" Qualified<PragmaName> "=" PragmaValue => (),
-	"pragma" Qualified<PragmaName> "(" PragmaValue ")" => (),
-	"pragma" Qualified<PragmaName> "=" MinusNumber => (),
-	"pragma" Qualified<PragmaName> "(" MinusNumber ")" => (),
+    "pragma" Qualified<PragmaName> => (),
+    "pragma" Qualified<PragmaName> "=" PragmaValue => (),
+    "pragma" Qualified<PragmaName> "(" PragmaValue ")" => (),
+    "pragma" Qualified<PragmaName> "=" MinusNumber => (),
+    "pragma" Qualified<PragmaName> "(" MinusNumber ")" => (),
 };
 
 PragmaValue: () = {
-	PlusNumber => (),
-	"Id" => (),
-	"on" => (),
-	"delete" => (),
-	"default" => (),
+    PlusNumber => (),
+    "Id" => (),
+    "on" => (),
+    "delete" => (),
+    "default" => (),
 };
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
 TriggerName = "Id";
 
 CreateTrigger: () =
-	"create" TriggerDecl "begin" TriggerCmdList "end" => ();
+    "create" TriggerDecl "begin" TriggerCmdList "end" => ();
 TriggerDecl: () =
-	"temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
+    "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
 TriggerTime: () = {
-	"before" => (),
-	"after" => (),
-	"instead" "of" => (),
+    "before" => (),
+    "after" => (),
+    "instead" "of" => (),
 };
 TriggerEvent: () = {
-	"delete" => (),
-	"insert" => (),
-	"update" => (),
-	"update" "of" CommaList<ColumnName> => (),
+    "delete" => (),
+    "insert" => (),
+    "update" => (),
+    "update" "of" CommaList<ColumnName> => (),
 };
 ForEachRow: () =
-	"for" "each" "row" => ();
+    "for" "each" "row" => ();
 WhenClause: () =
-	"when" Expr => ();
+    "when" Expr => ();
 TriggerCmdList: () = {
-	TriggerCmdList TriggerCmd ";" => (),
-	TriggerCmd ";" => (),
+    TriggerCmdList TriggerCmd ";" => (),
+    TriggerCmd ";" => (),
 };
 // Disallow qualified table names on INSERT, UPDATE, and DELETE statements
 // within a trigger. The table to INSERT, UPDATE, or DELETE is always in
 // the same database as the table that the trigger fires on.
 TriggerCmd: () = {
-	"update" OrConflict? TableName "set" CommaList<Set> Where? => (),
-	"insert" "into" TableName ("(" CommaList<ColumnName> ")")? Select => (),
-	"delete" "from" TableName Where? => (),
-	Select => (),
+    "update" OrConflict? TableName "set" CommaList<Set> Where? => (),
+    "insert" "into" TableName ("(" CommaList<ColumnName> ")")? Select => (),
+    "delete" "from" TableName Where? => (),
+    Select => (),
 };
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////
 DropTrigger: () =
-	"drop" "trigger" IfExists? Qualified<TriggerName> => ();
+    "drop" "trigger" IfExists? Qualified<TriggerName> => ();
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
 Attach: () =
-	"attach" "database"? Expr "as" Expr ("key" Expr)? => ();
+    "attach" "database"? Expr "as" Expr ("key" Expr)? => ();
 Detach: () =
-	"detach" "database"? Expr => ();
+    "detach" "database"? Expr => ();
 
 ////////////////////////// REINDEX collation //////////////////////////////////
 Reindex: () = {
-	"reindex" => (),
-	"reindex" QualifiedTableName => (),
+    "reindex" => (),
+    "reindex" QualifiedTableName => (),
 };
 
 /////////////////////////////////// ANALYZE ///////////////////////////////////
 Analyze: () = {
-	"analyze" => (),
-	"analyze" QualifiedTableName => (),
+    "analyze" => (),
+    "analyze" QualifiedTableName => (),
 };
 
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
 AlterTable: () = {
-	"alter" "table" QualifiedTableName "rename" "to" TableName => (),
-	"alter" "table" QualifiedTableName "add" "column"? ColumnDef => (),
+    "alter" "table" QualifiedTableName "rename" "to" TableName => (),
+    "alter" "table" QualifiedTableName "add" "column"? ColumnDef => (),
 };
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
 CreateVirtualTable: () =
-	"create" "virtual" "table" IfNotExists? QualifiedTableName "using" ("(" CommaList<VirtualTableArg>? ")")? => ();
+    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ("(" CommaList<VirtualTableArg>? ")")? => ();
 
 VirtualTableArg: () = {
-	"StringLiteral" => (),
-	"Id" => (),
-	NumericLiteral => (),
-	// TODO ANY
+    "StringLiteral" => (),
+    "Id" => (),
+    NumericLiteral => (),
+    // TODO ANY
 };
 
 //////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
 With: () =
-	"with" "recursive"? CommaList<WithQuery> => ();
+    "with" "recursive"? CommaList<WithQuery> => ();
 WithQuery: () =
-	TableName ("(" CommaList<IndexedColumn> ")")? "as" "(" Select ")" => ();
+    TableName ("(" CommaList<IndexedColumn> ")")? "as" "(" Select ")" => ();
 
 extern {
-	type Location = usize;
-	type Error = tok::Error;
-	enum Tok<'input> {
-		"abort" => Tok::Abort,
-		"action" => Tok::Action,
-		"add" => Tok::Add,
-		"after" => Tok::After,
-		"all" => Tok::All,
-		"alter" => Tok::Alter,
-		"analyze" => Tok::Analyze,
-		"and" => Tok::And,
-		"as" => Tok::As,
-		"asc" => Tok::Asc,
-		"attach" => Tok::Attach,
-		"autoincrement" => Tok::Autoincr,
-		"before" => Tok::Before,
-		"begin" => Tok::Begin,
-		"between" => Tok::Between,
-		"by" => Tok::By,
-		"cascade" => Tok::Cascade,
-		"case" => Tok::Case,
-		"cast" => Tok::Cast,
-		"check" => Tok::Check,
-		"collate" => Tok::Collate,
-		"column" => Tok::ColumnKw,
-		"commit" => Tok::Commit,
-		"conflict" => Tok::Conflict,
-		"constraint" => Tok::Constraint,
-		"create" => Tok::Create,
-		"cross" => Tok::Cross,
-		"current_date" => Tok::CurrentDate,
-		"current_time" => Tok::CurrentTime,
-		"current_timestamp" => Tok::CurrentTimestamp,
-		"database" => Tok::Database,
-		"default" => Tok::Default,
-		"deferrable" => Tok::Deferrable,
-		"deferred" => Tok::Deferred,
-		"delete" => Tok::Delete,
-		"desc" => Tok::Desc,
-		"detach" => Tok::Detach,
-		"distinct" => Tok::Distinct,
-		"drop" => Tok::Drop,
-		"each" => Tok::Each,
-		"else" => Tok::Else,
-		"end" => Tok::End,
-		"escape" => Tok::Escape,
-		"except" => Tok::Except,
-		"exclusive" => Tok::Exclusive,
-		"exists" => Tok::Exists,
-		"explain" => Tok::Explain,
-		"fail" => Tok::Fail,
-		"for" => Tok::For,
-		"foreign" => Tok::Foreign,
-		"from" => Tok::From,
-		"full" => Tok::Full,
-		"glob" => Tok::Glob,
-		"group" => Tok::Group,
-		"having" => Tok::Having,
-		"if" => Tok::If,
-		"ignore" => Tok::Ignore,
-		"immediate" => Tok::Immediate,
-		"in" => Tok::In,
-		"index" => Tok::Index,
-		"indexed" => Tok::Indexed,
-		"initially" => Tok::Initially,
-		"inner" => Tok::Inner,
-		"insert" => Tok::Insert,
-		"instead" => Tok::Instead,
-		"intersect" => Tok::Intersect,
-		"into" => Tok::Into,
-		"is" => Tok::Is,
-		"isnull" => Tok::IsNull,
-		"join" => Tok::Join,
-		"key" => Tok::Key,
-		"left" => Tok::Left,
-		"like" => Tok::Like,
-		"limit" => Tok::Limit,
-		"match" => Tok::Match,
-		"natural" => Tok::Natural,
-		"no" => Tok::No,
-		"not" => Tok::Not,
-		"notnull" => Tok::NotNull,
-		"null" => Tok::Null,
-		"of" => Tok::Of,
-		"offset" => Tok::Offset,
-		"on" => Tok::On,
-		"or" => Tok::Or,
-		"order" => Tok::Order,
-		"outer" => Tok::Outer,
-		"plan" => Tok::Plan,
-		"pragma" => Tok::Pragma,
-		"primary" => Tok::Primary,
-		"query" => Tok::Query,
-		"raise" => Tok::Raise,
-		"recursive" => Tok::Recursive,
-		"references" => Tok::References,
-		"regexp" => Tok::Regexp,
-		"reindex" => Tok::Reindex,
-		"release" => Tok::Release,
-		"rename" => Tok::Rename,
-		"replace" => Tok::Replace,
-		"restrict" => Tok::Restrict,
-		"right" => Tok::Right,
-		"rollback" => Tok::Rollback,
-		"row" => Tok::Row,
-		"savepoint" => Tok::Savepoint,
-		"select" => Tok::Select,
-		"set" => Tok::Set,
-		"table" => Tok::Table,
-		"temp" => Tok::Temp,
-		"then" => Tok::Then,
-		"to" => Tok::To,
-		"transaction" => Tok::Transaction,
-		"trigger" => Tok::Trigger,
-		"union" => Tok::Union,
-		"unique" => Tok::Unique,
-		"update" => Tok::Update,
-		"using" => Tok::Using,
-		"vacuum" => Tok::Vacuum,
-		"values" => Tok::Values,
-		"view" => Tok::View,
-		"virtual" => Tok::Virtual,
-		"when" => Tok::When,
-		"where" => Tok::Where,
-		"with" => Tok::With,
-		"without" => Tok::Without,
+    type Location = usize;
+    type Error = tok::Error;
+    enum Tok<'input> {
+        "abort" => Tok::Abort,
+        "action" => Tok::Action,
+        "add" => Tok::Add,
+        "after" => Tok::After,
+        "all" => Tok::All,
+        "alter" => Tok::Alter,
+        "analyze" => Tok::Analyze,
+        "and" => Tok::And,
+        "as" => Tok::As,
+        "asc" => Tok::Asc,
+        "attach" => Tok::Attach,
+        "autoincrement" => Tok::Autoincr,
+        "before" => Tok::Before,
+        "begin" => Tok::Begin,
+        "between" => Tok::Between,
+        "by" => Tok::By,
+        "cascade" => Tok::Cascade,
+        "case" => Tok::Case,
+        "cast" => Tok::Cast,
+        "check" => Tok::Check,
+        "collate" => Tok::Collate,
+        "column" => Tok::ColumnKw,
+        "commit" => Tok::Commit,
+        "conflict" => Tok::Conflict,
+        "constraint" => Tok::Constraint,
+        "create" => Tok::Create,
+        "cross" => Tok::Cross,
+        "current_date" => Tok::CurrentDate,
+        "current_time" => Tok::CurrentTime,
+        "current_timestamp" => Tok::CurrentTimestamp,
+        "database" => Tok::Database,
+        "default" => Tok::Default,
+        "deferrable" => Tok::Deferrable,
+        "deferred" => Tok::Deferred,
+        "delete" => Tok::Delete,
+        "desc" => Tok::Desc,
+        "detach" => Tok::Detach,
+        "distinct" => Tok::Distinct,
+        "drop" => Tok::Drop,
+        "each" => Tok::Each,
+        "else" => Tok::Else,
+        "end" => Tok::End,
+        "escape" => Tok::Escape,
+        "except" => Tok::Except,
+        "exclusive" => Tok::Exclusive,
+        "exists" => Tok::Exists,
+        "explain" => Tok::Explain,
+        "fail" => Tok::Fail,
+        "for" => Tok::For,
+        "foreign" => Tok::Foreign,
+        "from" => Tok::From,
+        "full" => Tok::Full,
+        "glob" => Tok::Glob,
+        "group" => Tok::Group,
+        "having" => Tok::Having,
+        "if" => Tok::If,
+        "ignore" => Tok::Ignore,
+        "immediate" => Tok::Immediate,
+        "in" => Tok::In,
+        "index" => Tok::Index,
+        "indexed" => Tok::Indexed,
+        "initially" => Tok::Initially,
+        "inner" => Tok::Inner,
+        "insert" => Tok::Insert,
+        "instead" => Tok::Instead,
+        "intersect" => Tok::Intersect,
+        "into" => Tok::Into,
+        "is" => Tok::Is,
+        "isnull" => Tok::IsNull,
+        "join" => Tok::Join,
+        "key" => Tok::Key,
+        "left" => Tok::Left,
+        "like" => Tok::Like,
+        "limit" => Tok::Limit,
+        "match" => Tok::Match,
+        "natural" => Tok::Natural,
+        "no" => Tok::No,
+        "not" => Tok::Not,
+        "notnull" => Tok::NotNull,
+        "null" => Tok::Null,
+        "of" => Tok::Of,
+        "offset" => Tok::Offset,
+        "on" => Tok::On,
+        "or" => Tok::Or,
+        "order" => Tok::Order,
+        "outer" => Tok::Outer,
+        "plan" => Tok::Plan,
+        "pragma" => Tok::Pragma,
+        "primary" => Tok::Primary,
+        "query" => Tok::Query,
+        "raise" => Tok::Raise,
+        "recursive" => Tok::Recursive,
+        "references" => Tok::References,
+        "regexp" => Tok::Regexp,
+        "reindex" => Tok::Reindex,
+        "release" => Tok::Release,
+        "rename" => Tok::Rename,
+        "replace" => Tok::Replace,
+        "restrict" => Tok::Restrict,
+        "right" => Tok::Right,
+        "rollback" => Tok::Rollback,
+        "row" => Tok::Row,
+        "savepoint" => Tok::Savepoint,
+        "select" => Tok::Select,
+        "set" => Tok::Set,
+        "table" => Tok::Table,
+        "temp" => Tok::Temp,
+        "then" => Tok::Then,
+        "to" => Tok::To,
+        "transaction" => Tok::Transaction,
+        "trigger" => Tok::Trigger,
+        "union" => Tok::Union,
+        "unique" => Tok::Unique,
+        "update" => Tok::Update,
+        "using" => Tok::Using,
+        "vacuum" => Tok::Vacuum,
+        "values" => Tok::Values,
+        "view" => Tok::View,
+        "virtual" => Tok::Virtual,
+        "when" => Tok::When,
+        "where" => Tok::Where,
+        "with" => Tok::With,
+        "without" => Tok::Without,
 
-		"StringLiteral" => Tok::StringLiteral(<&'input str>),
-		"Id" => Tok::Id(<&'input str>),
-		"Variable" => Tok::Variable(<&'input str>),
+        "StringLiteral" => Tok::StringLiteral(<&'input str>),
+        "Id" => Tok::Id(<&'input str>),
+        "Variable" => Tok::Variable(<&'input str>),
 
-		"Blob" => Tok::Blob(<&'input str>),
-		"Integer" => Tok::Integer(<&'input str>),
-		"Float" => Tok::Float(<&'input str>),
+        "Blob" => Tok::Blob(<&'input str>),
+        "Integer" => Tok::Integer(<&'input str>),
+        "Float" => Tok::Float(<&'input str>),
 
-		"&" => Tok::BitAnd,
-		"~" => Tok::BitNot,
-		"|" => Tok::BitOr,
-		"," => Tok::Comma,
-		"." => Tok::Dot,
-		"=" => Tok::Equals,
-		">" => Tok::GreaterThan,
-		"=>" => Tok::GreaterEquals,
-		"(" => Tok::LeftParen,
-		"<<" => Tok::LeftShift,
-		"<=" => Tok::LessEquals,
-		"<" => Tok::LessThan,
-		"-" => Tok::Minus,
-		"<>" => Tok::NotEquals,
-		"+" => Tok::Plus,
-		"%" => Tok::Reminder,
-		")" => Tok::RightParen,
-		">>" => Tok::RightShift,
-		";" => Tok::Semi,
-		"/" => Tok::Slash,
-		"*" => Tok::Star,
-	}
+        "&" => Tok::BitAnd,
+        "~" => Tok::BitNot,
+        "|" => Tok::BitOr,
+        "," => Tok::Comma,
+        "." => Tok::Dot,
+        "=" => Tok::Equals,
+        ">" => Tok::GreaterThan,
+        "=>" => Tok::GreaterEquals,
+        "(" => Tok::LeftParen,
+        "<<" => Tok::LeftShift,
+        "<=" => Tok::LessEquals,
+        "<" => Tok::LessThan,
+        "-" => Tok::Minus,
+        "<>" => Tok::NotEquals,
+        "+" => Tok::Plus,
+        "%" => Tok::Reminder,
+        ")" => Tok::RightParen,
+        ">>" => Tok::RightShift,
+        ";" => Tok::Semi,
+        "/" => Tok::Slash,
+        "*" => Tok::Star,
+    }
 }
