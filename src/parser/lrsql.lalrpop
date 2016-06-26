@@ -37,7 +37,7 @@ pub Cmd: () = {
 	Rollback,
 	Savepoint,
 	Release,
-//	CreateTable,
+	CreateTable,
 	DropTable,
 	CreateView,
 	DropView,
@@ -92,7 +92,7 @@ DatabaseName = "Id";
 TableName = "Id";
 
 CreateTable: () = {
-	CreateTableStart "(" CommaList<Column> CommaList<NamedTableConstraint>? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
+	CreateTableStart "(" CommaList<Column> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
 	CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
