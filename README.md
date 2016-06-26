@@ -7,4 +7,5 @@ SQL parser (as understood by SQLite)
 * [SQLite parser](http://www.sqlite.org/cgi/src/artifact/d7bff41d460f2df9)
 * [SQLte BNF grammar](http://www.sqlite.org/docsrc/doc/trunk/art/syntax/all-bnf.html)
 
-Currenly, only the lexer is implemented and tested...
+Currenly, only the lexer is complete and tested.
+The parser is not complete (`expr` parsing is missing) and not tested...
