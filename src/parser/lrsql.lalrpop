@@ -92,7 +92,7 @@ DatabaseName = "Id";
 TableName = "Id";
 
 CreateTable: () = {
-	CreateTableStart "(" CommaList<Column> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
+	CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
 	CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
@@ -106,7 +106,7 @@ ColumnName = "Id";
 	// TODO "cross", "inner", left", "natural", "outer", "right"
 ConstraintName = "Id";
 
-Column: () =
+ColumnDef: () =
 	ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
 
 // fullname
@@ -204,9 +204,9 @@ TableConstraint: () = {
 	"check" "(" Expr ")" => (),
 	"foreign" "key" "(" CommaList<IndexedColumn> ")" ForeignKeyClause => (),
 };
-SortedColumn: () =
+SortedColumn: () = // sortlist
 	Expr SortOrder? => ();
-IndexedColumn: () =
+IndexedColumn: () = // eidlist
 	ColumnName ("collate" CollationName)? SortOrder? => ();
 
 /////////////////////////// Expression Processing /////////////////////////////
@@ -228,9 +228,78 @@ DropView: () =
 	"drop" "view" IfExists? QualifiedTableName => ();
 
 //////////////////////// The SELECT statement /////////////////////////////////
-Select: () = {
-	"select" => (), // TODO
+Select: () =
+	With? SelectNoWith => ();
+
+SelectNoWith: () = {
+	OneSelect => (),
+	SelectNoWith CompoundOperator OneSelect => (),
 };
+
+CompoundOperator: () = {
+		"union" => (),
+		"union" "all" => (),
+		"except" => (),
+		"intersect" => (),
+};
+
+OneSelect: () = {
+	"select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? Having? OrderBy? Limit? => (),
+	Values => (),
+};
+
+Distinct: () = {
+	"distinct" => (),
+	"all" => (),
+};
+
+SelectColumn: () = {
+	Expr As? => (),
+	"*" => (),
+	TableName "." "*" => (),
+};
+
+Values: () = {
+	"values" "(" CommaList<Expr> ")" => (),
+	Values "," "(" CommaList<Expr>? ")" => (),
+};
+
+As: () =
+	"as"? Alias => ();
+
+Alias: () = {
+	"StringLiteral" => (),
+	"Id" => (),
+};
+
+From: () =
+	"from" SelectTableList => ();
+
+SelectTableList: () = {
+	SelectTable => (),
+	SelectTableList JoinOperator SelectTable => (),
+};
+
+SelectTable: () = {
+	QualifiedTableName As? Indexed? On? Using? => (),
+	QualifiedTableName "(" CommaList<Expr>? ")" As? On? Using? => (),
+	"(" Select ")" As? On? Using? => (),
+	"(" SelectTableList ")" As? On? Using? => (),
+};
+
+JoinOperator: () = {
+	"," => (),
+	"join" => (),
+	"natural"? JoinType "join" => (),
+};
+JoinType: () = {
+	"left" "outer"? => (),
+	"inner" => (),
+	"cross" => (),
+};
+
+On: () =
+	"on" Expr => ();
 
 IndexName = "Id";
 
@@ -239,8 +308,17 @@ Indexed: () = {
 	"not" "indexed" => (),
 };
 
+Using: () =
+	"using" "(" CommaList<ColumnName> ")" => ();
+
 Where: () =
 	"where" Expr => ();
+
+GroupBy: () =
+	"group" "by" CommaList<Expr> => ();
+
+Having: () =
+	"having" Expr => ();
 
 OrderBy: () =
 	"order" "by" CommaList<SortedColumn> => ();
@@ -366,7 +444,7 @@ Analyze: () = {
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
 AlterTable: () = {
 	"alter" "table" QualifiedTableName "rename" "to" TableName => (),
-	"alter" "table" QualifiedTableName "add" "column"? Column => (),
+	"alter" "table" QualifiedTableName "add" "column"? ColumnDef => (),
 };
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
