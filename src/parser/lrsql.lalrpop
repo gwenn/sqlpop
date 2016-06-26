@@ -1,6 +1,6 @@
 use tok::{self, Tok};
 
-grammar<'input>(text: &'input str);
+grammar<'input>(text: &'input str)["LALR(1)"];
 
 CommaList<T>: Vec<T> = {
 	T => vec![<>],
@@ -41,7 +41,7 @@ pub Cmd: () = {
 	DropTable,
 	CreateView,
 	DropView,
-//	Select,
+	Select,
 	Delete,
 	Update,
 	Insert,
