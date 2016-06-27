@@ -1,5 +1,7 @@
 # SQLPOP
 
+[![Build Status](https://travis-ci.org/gwenn/sqlpop.svg?branch=master)](https://travis-ci.org/gwenn/sqlpop)
+
 SQL parser (as understood by SQLite)
 
 * [LARLPOP and custom lexer](https://github.com/nikomatsakis/lalrpop/issues/39)
