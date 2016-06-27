@@ -113,6 +113,7 @@ IdString: () = {
     Id => (),
     // TODO "StringLiteral",
 };
+// nm
 Name: () = {
     Id => (),
     // TODO "StringLiteral",
@@ -126,21 +127,27 @@ ColumnDef: () =
 
 // fullname
 QualifiedTableName = Qualified<TableName>;
+
+// typetoken
 TypeName: () = {
     IdString+ => (),
     IdString+ "(" SignedNumber ")" => (),
     IdString+ "(" SignedNumber "," SignedNumber ")" => (),
 };
+// signed
 SignedNumber: () = {
     PlusNumber => (),
     MinusNumber => (),
 };
+// plus_num
 PlusNumber: () = {
     "+" NumericLiteral => (),
     NumericLiteral => (),
 };
+// minus_num
 MinusNumber: () =
     "-" NumericLiteral => ();
+// number
 NumericLiteral: () = {
     "Integer" => (),
     "Float" => (),
@@ -213,9 +220,11 @@ TableConstraint: () = {
     "check" "(" Expr ")" => (),
     "foreign" "key" "(" CommaList<IndexedColumn> ")" "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => (),
 };
-SortedColumn: () = // sortlist
+ // sortlist
+SortedColumn: () =
     Expr SortOrder? => ();
-IndexedColumn: () = // eidlist
+ // eidlist
+IndexedColumn: () =
     ColumnName ("collate" CollationName)? SortOrder? => ();
 
 DeferSubclause: () =
@@ -223,12 +232,6 @@ DeferSubclause: () =
 InitDeferredPred: () = {
     "initially" "deferred" => (),
     "initially" "immediate" => (),
-};
-
-/////////////////////////// Expression Processing /////////////////////////////
-Expr: () = {
-    LiteralValue => (),
-    // TODO
 };
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
@@ -362,6 +365,18 @@ Insert: () = {
 InsertCmd: () = {
     "insert" OrConflict? => (),
     "replace" => (),
+};
+
+/////////////////////////// Expression Processing /////////////////////////////
+Expr: () = {
+    LiteralValue => (),
+    "(" Expr ")" => (),
+    Id => (),
+// TODO JOIN_KW
+//    Name "." Name => (), // FIXME Ambiguity
+//    Name "." Name "." Name => (),
+    "Variable" => (),
+    // TODO
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
