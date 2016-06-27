@@ -60,7 +60,7 @@ pub Cmd: () = {
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
-TransactionName = "Id";
+TransactionName = Name;
 
 Begin: () =
     "begin" TransactionType? ("transaction" TransactionName?)? => ();
@@ -80,7 +80,7 @@ Rollback: () = {
     "rollback" ("transaction" TransactionName?)? "to" "savepoint"? SavepointName => ()
 };
 
-SavepointName = "Id";
+SavepointName = Name;
 
 Savepoint: () =
     "savepoint" SavepointName => ();
@@ -88,11 +88,11 @@ Release: () =
     "release" "savepoint"? SavepointName => ();
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
-DatabaseName = "Id";
-TableName = "Id";
+DatabaseName = Name;
+TableName = Name;
 
 CreateTable: () = {
-    CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" "Id")? => (), // TODO check "Id" == "rowid"*
+    CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" Name)? => (), // TODO check Name == "rowid"*
     CreateTableStart "as" Select => (),
 };
 CreateTableStart: () =
@@ -101,10 +101,25 @@ CreateTableStart: () =
 IfNotExists: () =
     "if" "not" "exists" => ();
 
-ColumnName = "Id";
+ColumnName = Name;
+
+Id: () = {
+    "Id" => (),
+    "indexed" => (),
+    // TODO fallback
+};
+
+IdString: () = {
+    Id => (),
+    // TODO "StringLiteral",
+};
+Name: () = {
+    Id => (),
     // TODO "StringLiteral",
     // TODO "cross", "inner", left", "natural", "outer", "right"
-ConstraintName = "Id";
+};
+
+ConstraintName = Name;
 
 ColumnDef: () =
     ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
@@ -112,9 +127,9 @@ ColumnDef: () =
 // fullname
 QualifiedTableName = Qualified<TableName>;
 TypeName: () = {
-    "Id"+ => (),
-    "Id"+ "(" SignedNumber ")" => (),
-    "Id"+ "(" SignedNumber "," SignedNumber ")" => (),
+    IdString+ => (),
+    IdString+ "(" SignedNumber ")" => (),
+    IdString+ "(" SignedNumber "," SignedNumber ")" => (),
 };
 SignedNumber: () = {
     PlusNumber => (),
@@ -131,7 +146,7 @@ NumericLiteral: () = {
     "Float" => (),
 };
 
-CollationName = "Id";
+CollationName = IdString;
 
 ColumnConstraint: () = {
     "primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
@@ -140,7 +155,7 @@ ColumnConstraint: () = {
     "check" "(" Expr ")" => (),
     "default" DefaultValue => (),
     "collate" CollationName => (),
-//    ForeignKeyClause => (), // FIXME ambiguity: "not" in DeferSubclause vs "not" "null"
+    "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* => (),
 };
 
 ConflictClause: () =
@@ -154,18 +169,17 @@ ResolveType = {
 };
 
 DefaultValue: () = {
-    "+" NumericLiteral => (), // Ambiguous grammar with SignedNumber and LiteralValue
-    "-" NumericLiteral => (),
     LiteralValue => (),
     "(" Expr ")" => (),
+    "+" LiteralValue => (), // Ambiguous grammar with SignedNumber and LiteralValue
+    "-" LiteralValue => (),
+    Id => (),
 };
 
-ForeignKeyClause: () =
-    "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => ();
 RefArg: () = {
     "on" "delete" RefAct => (),
     "on" "update" RefAct => (),
-    "match" "Id" => (),
+    "match" Name => (),
 };
 RefAct: () = {
     "set" "null" => (),
@@ -174,13 +188,8 @@ RefAct: () = {
     "restrict" => (),
     "no" "action" => (),
 };
-DeferSubclause: () =
-    "not"? "deferrable" InitDeferredPred? => ();
-InitDeferredPred: () = {
-    "initially" "deferred" => (),
-    "initially" "immediate" => (),
-};
 
+// term
 LiteralValue: () = {
     NumericLiteral => (),
     "StringLiteral" => (),
@@ -202,12 +211,19 @@ TableConstraint: () = {
     "primary" "key" "(" CommaList<SortedColumn> "autoincrement"? ")" ConflictClause? => (),
     "unique" "(" CommaList<SortedColumn> ")" ConflictClause? => (),
     "check" "(" Expr ")" => (),
-    "foreign" "key" "(" CommaList<IndexedColumn> ")" ForeignKeyClause => (),
+    "foreign" "key" "(" CommaList<IndexedColumn> ")" "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => (),
 };
 SortedColumn: () = // sortlist
     Expr SortOrder? => ();
 IndexedColumn: () = // eidlist
     ColumnName ("collate" CollationName)? SortOrder? => ();
+
+DeferSubclause: () =
+    "not"? "deferrable" InitDeferredPred? => ();
+InitDeferredPred: () = {
+    "initially" "deferred" => (),
+    "initially" "immediate" => (),
+};
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: () = {
@@ -264,12 +280,9 @@ Values: () = {
     Values "," "(" CommaList<Expr>? ")" => (),
 };
 
-As: () =
-    "as"? Alias => ();
-
-Alias: () = {
-    "StringLiteral" => (),
-    "Id" => (),
+As: () = {
+    "as" Name => (),
+    IdString => (),
 };
 
 From: () =
@@ -301,7 +314,7 @@ JoinType: () = {
 On: () =
     "on" Expr => ();
 
-IndexName = "Id";
+IndexName = Name;
 
 Indexed: () = {
     "indexed" "by" IndexName => (),
@@ -365,7 +378,7 @@ Vacuum: () = {
 };
 
 ///////////////////////////// The PRAGMA command /////////////////////////////
-PragmaName = "Id";
+PragmaName = Name;
 
 Pragma: () = {
     "pragma" Qualified<PragmaName> => (),
@@ -377,14 +390,14 @@ Pragma: () = {
 
 PragmaValue: () = {
     PlusNumber => (),
-    "Id" => (),
+    Name => (),
     "on" => (),
     "delete" => (),
     "default" => (),
 };
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
-TriggerName = "Id";
+TriggerName = Name;
 
 CreateTrigger: () =
     "create" TriggerDecl "begin" TriggerCmdList "end" => ();
@@ -448,8 +461,10 @@ AlterTable: () = {
 };
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
+ModuleName = Name;
+
 CreateVirtualTable: () =
-    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ("(" CommaList<VirtualTableArg>? ")")? => ();
+    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ModuleName ("(" CommaList<VirtualTableArg>? ")")? => ();
 
 VirtualTableArg: () = {
     "StringLiteral" => (),
