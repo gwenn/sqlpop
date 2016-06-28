@@ -376,6 +376,10 @@ Expr: () = {
 //    Name "." Name => (), // FIXME Ambiguity
 //    Name "." Name "." Name => (),
     "Variable" => (),
+    Expr "collate" CollationName => (),
+    "cast" "(" Expr "as" TypeName ")" => (),
+    Id "(" Distinct? CommaList<Expr>? ")" => (),
+    Id "(" "*" ")" => (),
     // TODO
 };
 
