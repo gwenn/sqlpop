@@ -167,12 +167,10 @@ ColumnConstraint: () = {
 
 ConflictClause: () =
     "on" "conflict" ResolveType => ();
-ResolveType = {
-    "rollback",
-    "abort",
-    "fail",
-    "ignore",
-    "replace",
+ResolveType: () = {
+    RaiseType => (),
+    "ignore" => (),
+    "replace" => (),
 };
 
 DefaultValue: () = {
@@ -376,11 +374,70 @@ Expr: () = {
 //    Name "." Name => (), // FIXME Ambiguity
 //    Name "." Name "." Name => (),
     "Variable" => (),
-    Expr "collate" CollationName => (),
+// TODO precedence/associativity
+//    Expr "collate" CollationName => (),
     "cast" "(" Expr "as" TypeName ")" => (),
     Id "(" Distinct? CommaList<Expr>? ")" => (),
     Id "(" "*" ")" => (),
+// TODO precedence/associativity
+//    Expr "and" Expr => (),
+//    Expr "or" Expr => (),
+//    Expr CompOperator Expr => (),
+//    Expr EqOperator Expr => (),
+//    Expr BitOperator Expr => (),
+//    Expr "+" Expr => (),
+//    Expr "-" Expr => (),
+//    Expr "*" Expr => (),
+//    Expr "/" Expr => (),
+//    Expr "%" Expr => (),
+//    Expr "||" Expr => (),
+//    Expr "not"? LikeOperator Expr ("escape" Expr)? => (),
+//    Expr "isnull" Expr => (),
+//    Expr "notnull" Expr => (),
+//    Expr "not" "null" Expr => (),
+//    Expr "is" "not"? Expr => (),
+    "not" Expr => (),
+    "~" Expr => (),
+    "-" Expr => (),
+    "+" Expr => (),
+//    Expr "not"? "between" Expr "and" Expr => (),
+//    Expr "not"? "in" "(" Expr ")" => (),
+    "(" Select ")" => (),
+//    Expr "not"? "in" "(" Select ")" => (),
+//    Expr "not"? "in" QualifiedTableName => (),
+    "exists" "(" Select ")" => (),
+    "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr?) "end" => (),
+    "raise" "(" "ignore" ")" => (),
+    "raise" "(" RaiseType "," Name ")" => (),
     // TODO
+};
+
+CompOperator: () = {
+    ">" => (),
+    "=>" => (),
+    "<=" => (),
+    "<" => (),
+};
+EqOperator: () = {
+    "=" => (),
+    "<>" => (),
+};
+BitOperator: () = {
+    "&" => (),
+    "~" => (),
+    "|" => (),
+    "<<" => (),
+    ">>" => (),
+};
+LikeOperator: () = {
+    "like" => (),
+    "match" => (),
+};
+
+RaiseType = {
+    "rollback",
+    "abort",
+    "fail",
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
@@ -419,7 +476,7 @@ PragmaValue: () = {
 TriggerName = Name;
 
 CreateTrigger: () =
-    "create" TriggerDecl "begin" TriggerCmdList "end" => ();
+    "create" TriggerDecl "begin" TriggerCmd+ "end" => ();
 TriggerDecl: () =
     "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
 TriggerTime: () = {
@@ -437,10 +494,6 @@ ForEachRow: () =
     "for" "each" "row" => ();
 WhenClause: () =
     "when" Expr => ();
-TriggerCmdList: () = {
-    TriggerCmdList TriggerCmd ";" => (),
-    TriggerCmd ";" => (),
-};
 // Disallow qualified table names on INSERT, UPDATE, and DELETE statements
 // within a trigger. The table to INSERT, UPDATE, or DELETE is always in
 // the same database as the table that the trigger fires on.
@@ -638,6 +691,7 @@ extern {
         "~" => Tok::BitNot,
         "|" => Tok::BitOr,
         "," => Tok::Comma,
+        "||" => Tok::Concat,
         "." => Tok::Dot,
         "=" => Tok::Equals,
         ">" => Tok::GreaterThan,
