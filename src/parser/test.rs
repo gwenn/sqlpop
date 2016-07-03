@@ -101,9 +101,19 @@ fn test_create_view() {
     parse_sql("CREATE VIEW test (id) AS SELECT 1").unwrap();
     parse_sql("CREATE VIEW main.test AS SELECT 1").unwrap();
 
-    parse_sql("CREATE TABLE IF NOT EXISTS test AS SELECT 1").unwrap();
+    parse_sql("CREATE VIEW IF NOT EXISTS test AS SELECT 1").unwrap();
 
     assert!(parse_sql("CREATE VIEW AS SELECT 1").is_err(), "error expected when no view name is specified");
+}
+
+#[test]
+fn test_drop_view() {
+    parse_sql("DROP VIEW test").unwrap();
+    parse_sql("DROP VIEW main.test").unwrap();
+
+    parse_sql("DROP VIEW IF EXISTS test").unwrap();
+
+    assert!(parse_sql("DROP VIEW").is_err(), "error expected when no view name is specified");
 }
 
 #[test]
@@ -136,11 +146,154 @@ fn test_delete() {
 fn test_update() {
     parse_sql("UPDATE test SET id = 1").unwrap();
     parse_sql("UPDATE main.test SET id = 1").unwrap();
-    parse_sql("UPDATE main.test SET id = 1, name = 'test'").unwrap();
+    parse_sql("UPDATE test SET id = 1, name = 'test'").unwrap();
 
     parse_sql("UPDATE test SET id = 1 WHERE 1").unwrap();
     parse_sql("UPDATE test SET id = 1 ORDER BY id").unwrap();
     parse_sql("UPDATE test SET id = 1 LIMIT 1").unwrap();
 
     assert!(parse_sql("UPDATE SET id = 1").is_err(), "error expected when no table name is specified");
+}
+
+#[test]
+fn test_insert() {
+    parse_sql("INSERT INTO test VALUES (1)").unwrap();
+    parse_sql("INSERT INTO main.test VALUES (1)").unwrap();
+    parse_sql("INSERT INTO test VALUES (1, 'test')").unwrap();
+
+    parse_sql("INSERT INTO test (id) VALUES (1)").unwrap();
+    parse_sql("INSERT INTO test (id, name) VALUES (1, 'test')").unwrap();
+
+    parse_sql("INSERT INTO test SELECT 1").unwrap();
+    parse_sql("INSERT INTO test (id) SELECT 1").unwrap();
+    parse_sql("INSERT INTO test (id, name) SELECT 1, 'test'").unwrap();
+
+    parse_sql("INSERT INTO test DEFAULT VALUES").unwrap();
+    parse_sql("INSERT INTO test (id, name) DEFAULT VALUES").unwrap();
+
+    parse_sql("REPLACE INTO test VALUES (1)").unwrap();
+    parse_sql("INSERT OR IGNORE INTO test VALUES (1)").unwrap();
+
+    parse_sql("UPDATE test SET id = 1 WHERE 1").unwrap();
+    parse_sql("UPDATE test SET id = 1 ORDER BY id").unwrap();
+    parse_sql("UPDATE test SET id = 1 LIMIT 1").unwrap();
+
+    assert!(parse_sql("INSERT INTO DEFAULT VALUES").is_err(), "error expected when no table name is specified");
+}
+
+#[test]
+fn test_create_index() {
+    parse_sql("CREATE INDEX idx ON test (name)").unwrap();
+    parse_sql("CREATE INDEX main.idx ON test (name)").unwrap();
+
+    parse_sql("CREATE INDEX idx ON test (id, name)").unwrap();
+    parse_sql("CREATE UNIQUE INDEX idx ON test (name)").unwrap();
+    parse_sql("CREATE INDEX idx ON test (name) WHERE 1").unwrap();
+
+    parse_sql("CREATE INDEX IF NOT EXISTS idx ON test (name)").unwrap();
+
+    assert!(parse_sql("CREATE INDEX ON test (name)").is_err(), "error expected when no index name is specified");
+    assert!(parse_sql("CREATE INDEX idx ON (name)").is_err(), "error expected when no table name is specified");
+    assert!(parse_sql("CREATE INDEX idx ON test ()").is_err(), "error expected when no column name is specified");
+}
+
+#[test]
+fn test_drop_index() {
+    parse_sql("DROP INDEX idx").unwrap();
+    parse_sql("DROP INDEX main.idx").unwrap();
+
+    parse_sql("DROP INDEX IF EXISTS idx").unwrap();
+
+    assert!(parse_sql("DROP INDEX").is_err(), "error expected when no index name is specified");
+}
+
+#[test]
+fn test_vacuum() {
+    parse_sql("VACUUM").unwrap();
+    parse_sql("VACUUM main").unwrap();
+}
+
+#[test]
+fn test_pragma() {
+    parse_sql("PRAGMA name").unwrap();
+    parse_sql("PRAGMA main.name").unwrap();
+    parse_sql("PRAGMA name('test')").unwrap();
+
+    parse_sql("PRAGMA name=1").unwrap();
+
+    assert!(parse_sql("PRAGMA").is_err(), "error expected when no pragma name is specified");
+}
+
+#[test]
+fn test_create_trigger() {
+    parse_sql("CREATE TRIGGER trgr UPDATE ON test BEGIN SELECT 1; END").unwrap();
+    parse_sql("CREATE TRIGGER main.trgr BEFORE UPDATE ON test BEGIN SELECT 1; END").unwrap();
+
+    parse_sql("CREATE TRIGGER trgr BEFORE UPDATE ON test BEGIN SELECT RAISE(ABORT, '...') WHERE NEW.name <> OLD.name; END").unwrap();
+    parse_sql("CREATE TRIGGER IF NOT EXISTS trgr UPDATE ON test BEGIN SELECT 1; END").unwrap();
+
+    assert!(parse_sql("CREATE TRIGGER UPDATE ON test BEGIN SELECT 1; END").is_err(), "error expected when no trigger name is specified");
+    assert!(parse_sql("CREATE TRIGGER trgr UPDATE ON BEGIN SELECT 1; END").is_err(), "error expected when no table name is specified");
+    assert!(parse_sql("CREATE TRIGGER trgr UPDATE test ON BEGIN SELECT 1 FROM main.test; END").is_err(), "error expected when qualified table name is specified");
+}
+
+#[test]
+fn test_drop_trigger() {
+    parse_sql("DROP TRIGGER trgr").unwrap();
+    parse_sql("DROP TRIGGER main.trgr").unwrap();
+
+    parse_sql("DROP TRIGGER IF EXISTS trgr").unwrap();
+
+    assert!(parse_sql("DROP TRIGGER").is_err(), "error expected when no trigger name is specified");
+}
+
+#[test]
+fn test_attach() {
+    parse_sql("ATTACH 'test.db' AS aux").unwrap();
+    parse_sql("ATTACH DATABASE 'test.db' AS aux").unwrap();
+
+    assert!(parse_sql("ATTACH AS aux").is_err(), "error expected when no file name is specified");
+    assert!(parse_sql("ATTACH 'test.db' AS").is_err(), "error expected when no alias is specified");
+}
+
+#[test]
+fn test_detach() {
+    parse_sql("DETACH aux").unwrap();
+    parse_sql("DETACH DATABASE aux").unwrap();
+
+    assert!(parse_sql("DETACH").is_err(), "error expected when no alias is specified");
+}
+
+#[test]
+fn test_reindex() {
+    parse_sql("REINDEX").unwrap();
+    parse_sql("REINDEX test").unwrap();
+    parse_sql("REINDEX main.test").unwrap();
+}
+
+#[test]
+fn test_analyze() {
+    parse_sql("ANALYZE").unwrap();
+    parse_sql("ANALYZE test").unwrap();
+    parse_sql("ANALYZE main.test").unwrap();
+}
+
+#[test]
+fn test_alter_table() {
+    parse_sql("ALTER TABLE test RENAME new").unwrap();
+    parse_sql("ALTER TABLE main.test RENAME new").unwrap();
+    parse_sql("ALTER TABLE test ADD new").unwrap();
+    parse_sql("ALTER TABLE test ADD COLUMN new").unwrap();
+
+    assert!(parse_sql("ALTER TABLE RENAME new").is_err(), "error expected when no table name is specified");
+}
+
+#[test]
+fn test_create_virtual_table() {
+    parse_sql("CREATE VIRTUAL TABLE test USING mod").unwrap();
+    parse_sql("CREATE VIRTUAL TABLE main.test USING mod").unwrap();
+    parse_sql("CREATE VIRTUAL TABLE test USING mod()").unwrap();
+    parse_sql("CREATE VIRTUAL TABLE test USING mod('arg')").unwrap();
+
+    assert!(parse_sql("CREATE VIRTUAL TABLE test USING").is_err(), "error expected when no module name is specified");
 }
