@@ -73,15 +73,15 @@ TransactionType = {
     "exclusive",
 };
 
-Commit: () = {
-    "commit" Transaction? => (),
-    "end" Transaction? => (),
+Commit: () =
+    CommitHead Transaction? => ();
+CommitHead: () = {
+  "commit" => (),
+  "end" => (),
 };
 
-Rollback: () = {
-    "rollback" Transaction? => (),
-    "rollback" Transaction? "to" "savepoint"? SavepointName => ()
-};
+Rollback: () =
+    "rollback" Transaction? ("to" "savepoint"? SavepointName)? => ();
 
 SavepointName = Name;
 
@@ -243,7 +243,7 @@ DropView: () =
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () =
-    With? SelectNoWith => ();
+    With? SelectNoWith OrderBy? Limit? => ();
 
 SelectNoWith: () = {
     OneSelect => (),
@@ -258,7 +258,7 @@ CompoundOperator: () = {
 };
 
 OneSelect: () = {
-    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? OrderBy? Limit? => (),
+    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? => (),
     Values => (),
 };
 
@@ -408,7 +408,6 @@ Expr: () = {
     "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr?) "end" => (),
     "raise" "(" "ignore" ")" => (),
     "raise" "(" RaiseType "," Name ")" => (),
-    // TODO
 };
 
 CompOperator: () = {
@@ -429,9 +428,10 @@ BitOperator: () = {
     ">>" => (),
 };
 LikeOperator: () = {
+    "glob" => (),
     "like" => (),
     "match" => (),
-    // TODO glob, regexp
+    "regexp" => (),
 };
 
 RaiseType = {
@@ -471,9 +471,8 @@ PragmaValue: () = {
 //////////////////////////// The CREATE TRIGGER command /////////////////////
 TriggerName = Name;
 
-// FIXME ";" between TriggerCmd
 CreateTrigger: () =
-    "create" TriggerDecl "begin" TriggerCmd+ "end" => ();
+    "create" TriggerDecl "begin" (TriggerCmd ";")+ "end" => ();
 TriggerDecl: () =
     "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
 TriggerTime: () = {
