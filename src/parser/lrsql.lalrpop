@@ -366,6 +366,87 @@ InsertBody: () = {
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: () = {
+    OrExpr => (),
+};
+
+// %left OR.
+OrExpr: () = {
+    OrExpr "or" AndExpr => (),
+    AndExpr => (),
+};
+// %left AND.
+AndExpr: () = {
+    AndExpr "and" NotExpr => (),
+    NotExpr => (),
+};
+// %right NOT.
+NotExpr: () = {
+    "not" NotExpr => (),
+    EqExpr => (),
+};
+// %left IS MATCH LIKE_KW BETWEEN IN ISNULL NOTNULL NE EQ.
+EqExpr: () = {
+    EqExpr "=" CompExpr => (),
+    EqExpr "<>" CompExpr => (),
+//    EqExpr "not"? LikeOperator Expr ("escape" Expr)? => (), // FIXME
+    EqExpr "isnull" => (),
+    EqExpr "notnull" => (),
+    EqExpr "not" "null" => (),
+    EqExpr "is" "not"? CompExpr => (),
+//    EqExpr "not"? "between" Expr "and" Expr => (), // FIXME
+//    EqExpr "not"? "in" "(" Expr ")" => (),
+    EqExpr "not"? "in" "(" Select ")" => (),
+    EqExpr "not"? "in" QualifiedTableName => (),
+    CompExpr => (),
+};
+// %left GT LE LT GE.
+CompExpr: () = {
+    CompExpr ">" BitExpr => (),
+    CompExpr "=>" BitExpr => (),
+    CompExpr "<=" BitExpr => (),
+    CompExpr "<" BitExpr => (),
+    BitExpr => (),
+};
+// TODO %right ESCAPE.
+// %left BITAND BITOR LSHIFT RSHIFT.
+BitExpr: () = {
+    BitExpr "&" SumExpr => (),
+    BitExpr "|" SumExpr => (),
+    BitExpr "<<" SumExpr => (),
+    BitExpr ">>" SumExpr => (),
+    SumExpr => (),
+};
+// %left PLUS MINUS.
+SumExpr: () = {
+    SumExpr "+" MulExpr => (),
+    SumExpr "-" MulExpr => (),
+    MulExpr => (),
+};
+// %left STAR SLASH REM.
+MulExpr: () = {
+    MulExpr "*" ConcatExpr => (),
+    MulExpr "/" ConcatExpr => (),
+    MulExpr "%" ConcatExpr => (),
+    ConcatExpr => (),
+};
+// %left CONCAT.
+ConcatExpr: () = {
+    ConcatExpr "||" CollateExpr => (),
+    CollateExpr => (),
+};
+// %left COLLATE.
+CollateExpr: () = {
+    CollateExpr "collate" CollationName => (),
+    BitNotExpr => (),
+};
+// %right BITNOT.
+BitNotExpr: () = {
+    "~" BitNotExpr => (),
+    "-" BitNotExpr => (),
+    "+" BitNotExpr => (),
+    OtherExpr => (),
+};
+OtherExpr: () = {
     LiteralValue => (),
     "(" Expr ")" => (),
     Id => (),
@@ -373,60 +454,16 @@ Expr: () = {
 //    Name "." Name => (), // FIXME Ambiguity
 //    Name "." Name "." Name => (),
     "Variable" => (),
-// TODO precedence/associativity
-//    Expr "collate" CollationName => (),
     "cast" "(" Expr "as" TypeName ")" => (),
     Id "(" Distinct? CommaList<Expr>? ")" => (),
     Id "(" "*" ")" => (),
-// TODO precedence/associativity
-//    Expr "and" Expr => (),
-//    Expr "or" Expr => (),
-//    Expr CompOperator Expr => (),
-//    Expr EqOperator Expr => (),
-//    Expr BitOperator Expr => (),
-//    Expr "+" Expr => (),
-//    Expr "-" Expr => (),
-//    Expr "*" Expr => (),
-//    Expr "/" Expr => (),
-//    Expr "%" Expr => (),
-//    Expr "||" Expr => (),
-//    Expr "not"? LikeOperator Expr ("escape" Expr)? => (),
-//    Expr "isnull" Expr => (),
-//    Expr "notnull" Expr => (),
-//    Expr "not" "null" Expr => (),
-//    Expr "is" "not"? Expr => (),
-    "not" Expr => (),
-    "~" Expr => (),
-    "-" Expr => (),
-    "+" Expr => (),
-//    Expr "not"? "between" Expr "and" Expr => (),
-//    Expr "not"? "in" "(" Expr ")" => (),
     "(" Select ")" => (),
-//    Expr "not"? "in" "(" Select ")" => (),
-//    Expr "not"? "in" QualifiedTableName => (),
     "exists" "(" Select ")" => (),
     "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr?) "end" => (),
     "raise" "(" "ignore" ")" => (),
     "raise" "(" RaiseType "," Name ")" => (),
 };
 
-CompOperator: () = {
-    ">" => (),
-    "=>" => (),
-    "<=" => (),
-    "<" => (),
-};
-EqOperator: () = {
-    "=" => (),
-    "<>" => (),
-};
-BitOperator: () = {
-    "&" => (),
-    "~" => (),
-    "|" => (),
-    "<<" => (),
-    ">>" => (),
-};
 LikeOperator: () = {
     "glob" => (),
     "like" => (),
