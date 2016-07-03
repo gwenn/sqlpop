@@ -26,10 +26,8 @@ pub CmdList: Vec<Option<()>> = {
 
 pub ExplainCmd: () =
     Explain? Cmd => ();
-Explain: () = {
-    "explain" => (),
-    "explain" "query" "plan" => (),
-};
+Explain: () =
+    "explain" ("query" "plan")? => ();
 
 pub Cmd: () = {
     Begin,
@@ -173,8 +171,8 @@ ResolveType: () = {
 DefaultValue: () = {
     LiteralValue => (),
     "(" Expr ")" => (),
-    "+" LiteralValue => (), // Ambiguous grammar with SignedNumber and LiteralValue
-    "-" LiteralValue => (),
+    "+" NumericLiteral => (), // Ambiguous grammar with SignedNumber and LiteralValue
+    "-" NumericLiteral => (),
     Id => (),
 };
 
@@ -288,14 +286,19 @@ From: () =
 
 SelectTableList: () = {
     SelectTable => (),
-    SelectTableList JoinOperator SelectTable => (),
+    SelectTableList JoinOperator SelectTable JoinConstraint? => (),
 };
 
 SelectTable: () = {
-    QualifiedTableName As? Indexed? On? Using? => (),
-    QualifiedTableName "(" CommaList<Expr>? ")" As? On? Using? => (),
-    "(" Select ")" As? On? Using? => (),
-    "(" SelectTableList ")" As? On? Using? => (),
+    QualifiedTableName As? Indexed? => (),
+    QualifiedTableName "(" CommaList<Expr>? ")" As? => (),
+    "(" Select ")" As? => (),
+    "(" SelectTableList ")" As? => (),
+};
+
+JoinConstraint: () = {
+    "on" Expr => (),
+    "using" "(" CommaList<ColumnName> ")" => (),
 };
 
 JoinOperator: () = {
@@ -309,9 +312,6 @@ JoinType: () = {
     "cross" => (),
 };
 
-On: () =
-    "on" Expr => ();
-
 IndexName = Name;
 
 Indexed: () = {
@@ -319,17 +319,11 @@ Indexed: () = {
     "not" "indexed" => (),
 };
 
-Using: () =
-    "using" "(" CommaList<ColumnName> ")" => ();
-
 Where: () =
     "where" Expr => ();
 
 GroupBy: () =
-    "group" "by" CommaList<Expr> Having? => ();
-
-Having: () =
-    "having" Expr => ();
+    "group" "by" CommaList<Expr> ("having" Expr)? => ();
 
 OrderBy: () =
     "order" "by" CommaList<SortedColumn> => ();
@@ -459,7 +453,7 @@ OtherExpr: () = {
     Id "(" "*" ")" => (),
     "(" Select ")" => (),
     "exists" "(" Select ")" => (),
-    "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr?) "end" => (),
+    "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr)? "end" => (),
     "raise" "(" "ignore" ")" => (),
     "raise" "(" RaiseType "," Name ")" => (),
 };
