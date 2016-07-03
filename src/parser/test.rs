@@ -86,6 +86,21 @@ fn test_create_table() {
 }
 
 #[test]
+fn test_column_definition() {
+    // TODO
+}
+
+#[test]
+fn test_column_constraints() {
+    // TODO
+}
+
+#[test]
+fn test_table_constraints() {
+    // TODO
+}
+
+#[test]
 fn test_drop_table() {
     parse_sql("DROP TABLE test").unwrap();
     parse_sql("DROP TABLE main.test").unwrap();
@@ -128,6 +143,11 @@ fn test_select() {
     parse_sql("SELECT * FROM test LIMIT 1").unwrap();
 
     assert!(parse_sql("SELECT 1 FROM WHERE 1").is_err(), "error expected when no table name is specified");
+}
+
+#[test]
+fn test_expression() {
+    // TODO
 }
 
 #[test]
@@ -280,12 +300,12 @@ fn test_analyze() {
 
 #[test]
 fn test_alter_table() {
-    parse_sql("ALTER TABLE test RENAME new").unwrap();
-    parse_sql("ALTER TABLE main.test RENAME new").unwrap();
+    parse_sql("ALTER TABLE test RENAME TO new").unwrap();
+    parse_sql("ALTER TABLE main.test RENAME TO new").unwrap();
     parse_sql("ALTER TABLE test ADD new").unwrap();
     parse_sql("ALTER TABLE test ADD COLUMN new").unwrap();
 
-    assert!(parse_sql("ALTER TABLE RENAME new").is_err(), "error expected when no table name is specified");
+    assert!(parse_sql("ALTER TABLE RENAME TO new").is_err(), "error expected when no table name is specified");
 }
 
 #[test]

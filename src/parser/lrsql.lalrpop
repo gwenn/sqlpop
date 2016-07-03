@@ -455,7 +455,7 @@ OtherExpr: () = {
     "exists" "(" Select ")" => (),
     "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr)? "end" => (),
     "raise" "(" "ignore" ")" => (),
-    "raise" "(" RaiseType "," Name ")" => (),
+    "raise" "(" RaiseType "," "StringLiteral" ")" => (), // TODO Name versus StringLiteral
 };
 
 LikeOperator: () = {
@@ -493,6 +493,7 @@ PragmaBody: () = {
 };
 PragmaValue: () = {
     SignedNumber => (),
+    "StringLiteral" => (),
     Name => (),
     "on" => (),
     "delete" => (),
