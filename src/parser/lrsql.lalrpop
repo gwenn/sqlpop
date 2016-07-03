@@ -62,8 +62,11 @@ pub Cmd: () = {
 ///////////////////// Begin and end transactions. ////////////////////////////
 TransactionName = Name;
 
+Transaction: () =
+    "transaction" Name? => ();
+
 Begin: () =
-    "begin" TransactionType? ("transaction" TransactionName?)? => ();
+    "begin" TransactionType? Transaction? => ();
 TransactionType = {
     "deferred",
     "immediate",
@@ -71,13 +74,13 @@ TransactionType = {
 };
 
 Commit: () = {
-    "commit" ("transaction" TransactionName?)? => (),
-    "end" ("transaction" TransactionName?)? => (),
+    "commit" Transaction? => (),
+    "end" Transaction? => (),
 };
 
 Rollback: () = {
-    "rollback" ("transaction" TransactionName?)? => (),
-    "rollback" ("transaction" TransactionName?)? "to" "savepoint"? SavepointName => ()
+    "rollback" Transaction? => (),
+    "rollback" Transaction? "to" "savepoint"? SavepointName => ()
 };
 
 SavepointName = Name;
@@ -91,12 +94,12 @@ Release: () =
 DatabaseName = Name;
 TableName = Name;
 
-CreateTable: () = {
-    CreateTableStart "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" Name)? => (), // TODO check Name == "rowid"*
-    CreateTableStart "as" Select => (),
+CreateTable: () =
+    "create" "temp"? "table" IfNotExists? QualifiedTableName CreateTableBody => ();
+CreateTableBody: () = {
+    "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" Name)? => (), // TODO check Name == "rowid"*
+    "as" Select => (),
 };
-CreateTableStart: () =
-    "create" "temp"? "table" IfNotExists? QualifiedTableName => ();
 
 IfNotExists: () =
     "if" "not" "exists" => ();
@@ -135,18 +138,12 @@ TypeName: () = {
     IdString+ "(" SignedNumber "," SignedNumber ")" => (),
 };
 // signed
-SignedNumber: () = {
-    PlusNumber => (),
-    MinusNumber => (),
+SignedNumber: () =
+    (Sign)? NumericLiteral => ();
+Sign: () = {
+    "+" => (),
+    "-" => (),
 };
-// plus_num
-PlusNumber: () = {
-    "+" NumericLiteral => (),
-    NumericLiteral => (),
-};
-// minus_num
-MinusNumber: () =
-    "-" NumericLiteral => ();
 // number
 NumericLiteral: () = {
     "Integer" => (),
@@ -261,7 +258,7 @@ CompoundOperator: () = {
 };
 
 OneSelect: () = {
-    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? Having? OrderBy? Limit? => (),
+    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? OrderBy? Limit? => (),
     Values => (),
 };
 
@@ -329,7 +326,7 @@ Where: () =
     "where" Expr => ();
 
 GroupBy: () =
-    "group" "by" CommaList<Expr> => ();
+    "group" "by" CommaList<Expr> Having? => ();
 
 Having: () =
     "having" Expr => ();
@@ -356,13 +353,15 @@ Set:() =
     ColumnName "=" Expr => ();
 
 ////////////////////////// The INSERT command /////////////////////////////////
-Insert: () = {
-    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? Select => (),
-    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? "default" "values" => (),
-};
+Insert: () =
+    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? InsertBody => ();
 InsertCmd: () = {
     "insert" OrConflict? => (),
     "replace" => (),
+};
+InsertBody: () = {
+    Select => (),
+    "default" "values" => (),
 };
 
 /////////////////////////// Expression Processing /////////////////////////////
@@ -432,6 +431,7 @@ BitOperator: () = {
 LikeOperator: () = {
     "like" => (),
     "match" => (),
+    // TODO glob, regexp
 };
 
 RaiseType = {
@@ -448,24 +448,20 @@ DropIndex: () =
     "drop" "index" IfExists? Qualified<IndexName> => ();
 
 ///////////////////////////// The VACUUM command /////////////////////////////
-Vacuum: () = {
-    "vacuum" => (),
-    "vacuum" DatabaseName => (),
-};
+Vacuum: () =
+    "vacuum" DatabaseName? => ();
 
 ///////////////////////////// The PRAGMA command /////////////////////////////
 PragmaName = Name;
 
-Pragma: () = {
-    "pragma" Qualified<PragmaName> => (),
-    "pragma" Qualified<PragmaName> "=" PragmaValue => (),
-    "pragma" Qualified<PragmaName> "(" PragmaValue ")" => (),
-    "pragma" Qualified<PragmaName> "=" MinusNumber => (),
-    "pragma" Qualified<PragmaName> "(" MinusNumber ")" => (),
+Pragma: () =
+    "pragma" Qualified<PragmaName> PragmaBody? => ();
+PragmaBody: () = {
+    "=" PragmaValue => (),
+    "(" PragmaValue ")" => (),
 };
-
 PragmaValue: () = {
-    PlusNumber => (),
+    SignedNumber => (),
     Name => (),
     "on" => (),
     "delete" => (),
@@ -475,6 +471,7 @@ PragmaValue: () = {
 //////////////////////////// The CREATE TRIGGER command /////////////////////
 TriggerName = Name;
 
+// FIXME ";" between TriggerCmd
 CreateTrigger: () =
     "create" TriggerDecl "begin" TriggerCmd+ "end" => ();
 TriggerDecl: () =
@@ -515,21 +512,19 @@ Detach: () =
     "detach" "database"? Expr => ();
 
 ////////////////////////// REINDEX collation //////////////////////////////////
-Reindex: () = {
-    "reindex" => (),
-    "reindex" QualifiedTableName => (),
-};
+Reindex: () =
+    "reindex" QualifiedTableName? => ();
 
 /////////////////////////////////// ANALYZE ///////////////////////////////////
-Analyze: () = {
-    "analyze" => (),
-    "analyze" QualifiedTableName => (),
-};
+Analyze: () =
+    "analyze" QualifiedTableName? => ();
 
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
-AlterTable: () = {
-    "alter" "table" QualifiedTableName "rename" "to" TableName => (),
-    "alter" "table" QualifiedTableName "add" "column"? ColumnDef => (),
+AlterTable: () =
+    "alter" "table" QualifiedTableName AlterTableBody => ();
+AlterTableBody: () = {
+    "rename" "to" TableName => (),
+    "add" "column"? ColumnDef => (),
 };
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
