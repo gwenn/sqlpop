@@ -273,7 +273,7 @@ SelectColumn: () = {
 
 Values: () = {
     "values" "(" CommaList<Expr> ")" => (),
-    Values "," "(" CommaList<Expr>? ")" => (),
+    Values "," "(" CommaList<Expr> ")" => (),
 };
 
 As: () = {
@@ -387,8 +387,8 @@ EqExpr: () = {
     EqExpr "notnull" => (),
     EqExpr "not" "null" => (),
     EqExpr "is" "not"? CompExpr => (),
-//    EqExpr "not"? "between" Expr "and" Expr => (), // FIXME
-//    EqExpr "not"? "in" "(" Expr ")" => (),
+    EqExpr "not"? "between" NotExpr "and" CompExpr => (),
+    EqExpr "not"? "in" "(" Expr ")" => (),
     EqExpr "not"? "in" "(" Select ")" => (),
     EqExpr "not"? "in" QualifiedTableName => (),
     CompExpr => (),
