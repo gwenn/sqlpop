@@ -25,36 +25,34 @@ pub CmdList: Vec<Option<()>> = {
 };
 
 pub ExplainCmd: () =
-    Explain? Cmd => ();
-Explain: () =
-    "explain" ("query" "plan")? => ();
+    ("explain" ("query" "plan")?)? Cmd => ();
 
 pub Cmd: () = {
+    AlterTable,
+    Analyze,
+    Attach,
     Begin,
     Commit,
+    CreateIndex,
+    CreateTable,
+    CreateTrigger,
+    CreateView,
+    CreateVirtualTable,
+    Delete,
+    Detach,
+    DropIndex,
+    DropTable,
+    DropTrigger,
+    DropView,
+    Insert,
+    Pragma,
+    Reindex,
+    Release,
     Rollback,
     Savepoint,
-    Release,
-    CreateTable,
-    DropTable,
-    CreateView,
-    DropView,
     Select,
-    Delete,
     Update,
-    Insert,
-    CreateIndex,
-    DropIndex,
     Vacuum,
-    Pragma,
-    CreateTrigger,
-    DropTrigger,
-    Attach,
-    Detach,
-    Reindex,
-    Analyze,
-    AlterTable,
-    CreateVirtualTable,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
@@ -256,7 +254,7 @@ CompoundOperator: () = {
 };
 
 OneSelect: () = {
-    "select" Distinct? CommaList<SelectColumn> From? Where? GroupBy? => (),
+    "select" Distinct? CommaList<ResultColumn> From? Where? GroupBy? => (),
     Values => (),
 };
 
@@ -265,7 +263,7 @@ Distinct: () = {
     "all" => (),
 };
 
-SelectColumn: () = {
+ResultColumn: () = {
     Expr As? => (),
     "*" => (),
     TableName "." "*" => (),
@@ -382,7 +380,7 @@ NotExpr: () = {
 EqExpr: () = {
     EqExpr "=" CompExpr => (),
     EqExpr "<>" CompExpr => (),
-//    EqExpr "not"? LikeOperator Expr ("escape" Expr)? => (), // FIXME
+    EqExpr "not"? LikeOperator CompExpr ("escape" Expr)? => (),
     EqExpr "isnull" => (),
     EqExpr "notnull" => (),
     EqExpr "not" "null" => (),
@@ -401,7 +399,7 @@ CompExpr: () = {
     CompExpr "<" BitExpr => (),
     BitExpr => (),
 };
-// TODO %right ESCAPE.
+// %right ESCAPE.
 // %left BITAND BITOR LSHIFT RSHIFT.
 BitExpr: () = {
     BitExpr "&" SumExpr => (),
@@ -573,8 +571,8 @@ VirtualTableArg: () = {
 
 //////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
 With: () =
-    "with" "recursive"? CommaList<WithQuery> => ();
-WithQuery: () =
+    "with" "recursive"? CommaList<CommonTableExpr> => ();
+CommonTableExpr: () =
     TableName ("(" CommaList<IndexedColumn> ")")? "as" "(" Select ")" => ();
 
 extern {
