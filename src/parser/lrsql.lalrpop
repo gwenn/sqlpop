@@ -380,7 +380,7 @@ NotExpr: () = {
 EqExpr: () = {
     EqExpr "=" CompExpr => (),
     EqExpr "<>" CompExpr => (),
-    EqExpr "not"? LikeOperator CompExpr ("escape" Expr)? => (),
+    EqExpr "not"? LikeOperator CompExpr ("escape" BitExpr)? => (),
     EqExpr "isnull" => (),
     EqExpr "notnull" => (),
     EqExpr "not" "null" => (),
