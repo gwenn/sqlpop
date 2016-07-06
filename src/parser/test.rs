@@ -1,6 +1,6 @@
 use super::parse_sql;
 
-#[test]
+//#[test]
 fn test_begin() {
     parse_sql("BEGIN").unwrap();
     parse_sql("BEGIN DEFERRED").unwrap();
@@ -18,7 +18,7 @@ fn test_begin() {
     assert!(parse_sql("BEGIN tx").is_err(), "error expected when transaction name is specified without `TRANSACTION` keyword preceding");
 }
 
-#[test]
+//#[test]
 fn test_commit() {
     parse_sql("COMMIT").unwrap();
     parse_sql("END").unwrap();
@@ -35,7 +35,7 @@ fn test_commit() {
     assert!(parse_sql("COMMIT tx").is_err(), "error expected when transaction name is specified without `TRANSACTION` keyword preceding");
 }
 
-#[test]
+//#[test]
 fn test_rollback() {
     parse_sql("ROLLBACK").unwrap();
 
@@ -49,14 +49,14 @@ fn test_rollback() {
     assert!(parse_sql("ROLLBACK tx").is_err(), "error expected when transaction name is specified without `TRANSACTION` keyword preceding");
 }
 
-#[test]
+//#[test]
 fn test_savepoint() {
     parse_sql("SAVEPOINT sp").unwrap();
 
     assert!(parse_sql("SAVEPOINT").is_err(), "error expected when no savepoint name is specified");
 }
 
-#[test]
+//#[test]
 fn test_release() {
     parse_sql("RELEASE sp").unwrap();
     parse_sql("RELEASE SAVEPOINT sp").unwrap();
@@ -119,7 +119,7 @@ fn test_table_constraints() {
     parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id) DEFERRABLE INITIALLY DEFERRED)").unwrap();
 }
 
-#[test]
+//#[test]
 fn test_drop_table() {
     parse_sql("DROP TABLE test").unwrap();
     parse_sql("DROP TABLE main.test").unwrap();
@@ -129,7 +129,7 @@ fn test_drop_table() {
     assert!(parse_sql("DROP TABLE").is_err(), "error expected when no table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_create_view() {
     parse_sql("CREATE VIEW test AS SELECT 1").unwrap();
     parse_sql("CREATE VIEW test (id) AS SELECT 1").unwrap();
@@ -140,7 +140,7 @@ fn test_create_view() {
     assert!(parse_sql("CREATE VIEW AS SELECT 1").is_err(), "error expected when no view name is specified");
 }
 
-#[test]
+//#[test]
 fn test_drop_view() {
     parse_sql("DROP VIEW test").unwrap();
     parse_sql("DROP VIEW main.test").unwrap();
@@ -169,7 +169,7 @@ fn test_expression() {
     // TODO
 }
 
-#[test]
+//#[test]
 fn test_delete() {
     parse_sql("DELETE FROM test").unwrap();
     parse_sql("DELETE FROM main.test").unwrap();
@@ -181,7 +181,7 @@ fn test_delete() {
     assert!(parse_sql("DELETE FROM").is_err(), "error expected when no table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_update() {
     parse_sql("UPDATE test SET id = 1").unwrap();
     parse_sql("UPDATE main.test SET id = 1").unwrap();
@@ -194,7 +194,7 @@ fn test_update() {
     assert!(parse_sql("UPDATE SET id = 1").is_err(), "error expected when no table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_insert() {
     parse_sql("INSERT INTO test VALUES (1)").unwrap();
     parse_sql("INSERT INTO main.test VALUES (1)").unwrap();
@@ -220,7 +220,7 @@ fn test_insert() {
     assert!(parse_sql("INSERT INTO DEFAULT VALUES").is_err(), "error expected when no table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_create_index() {
     parse_sql("CREATE INDEX idx ON test (name)").unwrap();
     parse_sql("CREATE INDEX main.idx ON test (name)").unwrap();
@@ -236,7 +236,7 @@ fn test_create_index() {
     assert!(parse_sql("CREATE INDEX idx ON test ()").is_err(), "error expected when no column name is specified");
 }
 
-#[test]
+//#[test]
 fn test_drop_index() {
     parse_sql("DROP INDEX idx").unwrap();
     parse_sql("DROP INDEX main.idx").unwrap();
@@ -246,13 +246,13 @@ fn test_drop_index() {
     assert!(parse_sql("DROP INDEX").is_err(), "error expected when no index name is specified");
 }
 
-#[test]
+//#[test]
 fn test_vacuum() {
     parse_sql("VACUUM").unwrap();
     parse_sql("VACUUM main").unwrap();
 }
 
-#[test]
+//#[test]
 fn test_pragma() {
     parse_sql("PRAGMA name").unwrap();
     parse_sql("PRAGMA main.name").unwrap();
@@ -263,7 +263,7 @@ fn test_pragma() {
     assert!(parse_sql("PRAGMA").is_err(), "error expected when no pragma name is specified");
 }
 
-#[test]
+//#[test]
 fn test_create_trigger() {
     parse_sql("CREATE TRIGGER trgr UPDATE ON test BEGIN SELECT 1; END").unwrap();
     parse_sql("CREATE TRIGGER main.trgr BEFORE UPDATE ON test BEGIN SELECT 1; END").unwrap();
@@ -276,7 +276,7 @@ fn test_create_trigger() {
     assert!(parse_sql("CREATE TRIGGER trgr UPDATE test ON BEGIN SELECT 1 FROM main.test; END").is_err(), "error expected when qualified table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_drop_trigger() {
     parse_sql("DROP TRIGGER trgr").unwrap();
     parse_sql("DROP TRIGGER main.trgr").unwrap();
@@ -286,7 +286,7 @@ fn test_drop_trigger() {
     assert!(parse_sql("DROP TRIGGER").is_err(), "error expected when no trigger name is specified");
 }
 
-#[test]
+//#[test]
 fn test_attach() {
     parse_sql("ATTACH 'test.db' AS aux").unwrap();
     parse_sql("ATTACH DATABASE 'test.db' AS aux").unwrap();
@@ -295,7 +295,7 @@ fn test_attach() {
     assert!(parse_sql("ATTACH 'test.db' AS").is_err(), "error expected when no alias is specified");
 }
 
-#[test]
+//#[test]
 fn test_detach() {
     parse_sql("DETACH aux").unwrap();
     parse_sql("DETACH DATABASE aux").unwrap();
@@ -303,21 +303,21 @@ fn test_detach() {
     assert!(parse_sql("DETACH").is_err(), "error expected when no alias is specified");
 }
 
-#[test]
+//#[test]
 fn test_reindex() {
     parse_sql("REINDEX").unwrap();
     parse_sql("REINDEX test").unwrap();
     parse_sql("REINDEX main.test").unwrap();
 }
 
-#[test]
+//#[test]
 fn test_analyze() {
     parse_sql("ANALYZE").unwrap();
     parse_sql("ANALYZE test").unwrap();
     parse_sql("ANALYZE main.test").unwrap();
 }
 
-#[test]
+//#[test]
 fn test_alter_table() {
     parse_sql("ALTER TABLE test RENAME TO new").unwrap();
     parse_sql("ALTER TABLE main.test RENAME TO new").unwrap();
@@ -327,7 +327,7 @@ fn test_alter_table() {
     assert!(parse_sql("ALTER TABLE RENAME TO new").is_err(), "error expected when no table name is specified");
 }
 
-#[test]
+//#[test]
 fn test_create_virtual_table() {
     parse_sql("CREATE VIRTUAL TABLE test USING mod").unwrap();
     parse_sql("CREATE VIRTUAL TABLE main.test USING mod").unwrap();

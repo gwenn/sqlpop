@@ -28,63 +28,63 @@ pub ExplainCmd: () =
     ("explain" ("query" "plan")?)? Cmd => ();
 
 pub Cmd: () = {
-    AlterTable,
-    Analyze,
-    Attach,
-    Begin,
-    Commit,
-    CreateIndex,
+//    AlterTable,
+//    Analyze,
+//    Attach,
+//    Begin,
+//    Commit,
+//    CreateIndex,
     CreateTable,
-    CreateTrigger,
-    CreateView,
-    CreateVirtualTable,
-    Delete,
-    Detach,
-    DropIndex,
-    DropTable,
-    DropTrigger,
-    DropView,
-    Insert,
-    Pragma,
-    Reindex,
-    Release,
-    Rollback,
-    Savepoint,
+//    CreateTrigger,
+//    CreateView,
+//    CreateVirtualTable,
+//    Delete,
+//    Detach,
+//    DropIndex,
+//    DropTable,
+//    DropTrigger,
+//    DropView,
+//    Insert,
+//    Pragma,
+//    Reindex,
+//    Release,
+//    Rollback,
+//    Savepoint,
     Select,
-    Update,
-    Vacuum,
+//    Update,
+//    Vacuum,
 };
 
 ///////////////////// Begin and end transactions. ////////////////////////////
-TransactionName = Name;
-
-Transaction: () =
-    "transaction" Name? => ();
-
-Begin: () =
-    "begin" TransactionType? Transaction? => ();
-TransactionType = {
-    "deferred",
-    "immediate",
-    "exclusive",
-};
-
-Commit: () =
-    CommitHead Transaction? => ();
-CommitHead: () = {
-  "commit" => (),
-  "end" => (),
-};
-
-Rollback: () =
-    "rollback" Transaction? ("to" "savepoint"? SavepointName)? => ();
-
-SavepointName = Name;
-
-Savepoint: () =
-    "savepoint" SavepointName => ();
-Release: () =
-    "release" "savepoint"? SavepointName => ();
+//TransactionName = Name;
+//
+//Transaction: () =
+//    "transaction" Name? => ();
+//
+//Begin: () =
+//    "begin" TransactionType? Transaction? => ();
+//TransactionType = {
+//    "deferred",
+//    "immediate",
+//    "exclusive",
+//};
+//
+//Commit: () =
+//    CommitHead Transaction? => ();
+//CommitHead: () = {
+//  "commit" => (),
+//  "end" => (),
+//};
+//
+//Rollback: () =
+//    "rollback" Transaction? ("to" "savepoint"? SavepointName)? => ();
+//
+//SavepointName = Name;
+//
+//Savepoint: () =
+//    "savepoint" SavepointName => ();
+//Release: () =
+//    "release" "savepoint"? SavepointName => ();
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 DatabaseName = Name;
@@ -226,16 +226,16 @@ InitDeferredPred: () = {
 };
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
-DropTable: () =
-    "drop" "table" IfExists? QualifiedTableName => ();
-IfExists: () =
-    "if" "exists" => ();
+//DropTable: () =
+//    "drop" "table" IfExists? QualifiedTableName => ();
+//IfExists: () =
+//    "if" "exists" => ();
 
-///////////////////// The CREATE VIEW statement /////////////////////////////
-CreateView: () =
-    "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
-DropView: () =
-    "drop" "view" IfExists? QualifiedTableName => ();
+///////////////////// The CREATE VIEW statement ///////////////////////////////
+//CreateView: () =
+//    "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
+//DropView: () =
+//    "drop" "view" IfExists? QualifiedTableName => ();
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () =
@@ -333,28 +333,28 @@ Limit: () = {
 };
 
 /////////////////////////// The DELETE statement /////////////////////////////
-Delete: () =
-    With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
+//Delete: () =
+//    With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
 
 ////////////////////////// The UPDATE command ////////////////////////////////
-Update: () =
-    With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
-OrConflict:() =
-    "or" ResolveType => ();
-Set:() =
-    ColumnName "=" Expr => ();
+//Update: () =
+//    With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
+//OrConflict:() =
+//    "or" ResolveType => ();
+//Set:() =
+//    ColumnName "=" Expr => ();
 
 ////////////////////////// The INSERT command /////////////////////////////////
-Insert: () =
-    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? InsertBody => ();
-InsertCmd: () = {
-    "insert" OrConflict? => (),
-    "replace" => (),
-};
-InsertBody: () = {
-    Select => (),
-    "default" "values" => (),
-};
+//Insert: () =
+//    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? InsertBody => ();
+//InsertCmd: () = {
+//    "insert" OrConflict? => (),
+//    "replace" => (),
+//};
+//InsertBody: () = {
+//    Select => (),
+//    "default" "values" => (),
+//};
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: () = {
@@ -470,104 +470,104 @@ RaiseType = {
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
-CreateIndex: () =
-    "create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
+//CreateIndex: () =
+//    "create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
 ///////////////////////////// The DROP INDEX command /////////////////////////
-DropIndex: () =
-    "drop" "index" IfExists? Qualified<IndexName> => ();
+//DropIndex: () =
+//    "drop" "index" IfExists? Qualified<IndexName> => ();
 
 ///////////////////////////// The VACUUM command /////////////////////////////
-Vacuum: () =
-    "vacuum" DatabaseName? => ();
+//Vacuum: () =
+//    "vacuum" DatabaseName? => ();
 
 ///////////////////////////// The PRAGMA command /////////////////////////////
-PragmaName = Name;
-
-Pragma: () =
-    "pragma" Qualified<PragmaName> PragmaBody? => ();
-PragmaBody: () = {
-    "=" PragmaValue => (),
-    "(" PragmaValue ")" => (),
-};
-PragmaValue: () = {
-    SignedNumber => (),
-    "StringLiteral" => (),
-    Name => (),
-    "on" => (),
-    "delete" => (),
-    "default" => (),
-};
+//PragmaName = Name;
+//
+//Pragma: () =
+//    "pragma" Qualified<PragmaName> PragmaBody? => ();
+//PragmaBody: () = {
+//    "=" PragmaValue => (),
+//    "(" PragmaValue ")" => (),
+//};
+//PragmaValue: () = {
+//    SignedNumber => (),
+//    "StringLiteral" => (),
+//    Name => (),
+//    "on" => (),
+//    "delete" => (),
+//    "default" => (),
+//};
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
-TriggerName = Name;
-
-CreateTrigger: () =
-    "create" TriggerDecl "begin" (TriggerCmd ";")+ "end" => ();
-TriggerDecl: () =
-    "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
-TriggerTime: () = {
-    "before" => (),
-    "after" => (),
-    "instead" "of" => (),
-};
-TriggerEvent: () = {
-    "delete" => (),
-    "insert" => (),
-    "update" => (),
-    "update" "of" CommaList<ColumnName> => (),
-};
-ForEachRow: () =
-    "for" "each" "row" => ();
-WhenClause: () =
-    "when" Expr => ();
-// Disallow qualified table names on INSERT, UPDATE, and DELETE statements
-// within a trigger. The table to INSERT, UPDATE, or DELETE is always in
-// the same database as the table that the trigger fires on.
-TriggerCmd: () = {
-    "update" OrConflict? TableName "set" CommaList<Set> Where? => (),
-    "insert" "into" TableName ("(" CommaList<ColumnName> ")")? Select => (),
-    "delete" "from" TableName Where? => (),
-    Select => (),
-};
+//TriggerName = Name;
+//
+//CreateTrigger: () =
+//    "create" TriggerDecl "begin" (TriggerCmd ";")+ "end" => ();
+//TriggerDecl: () =
+//    "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
+//TriggerTime: () = {
+//    "before" => (),
+//    "after" => (),
+//    "instead" "of" => (),
+//};
+//TriggerEvent: () = {
+//    "delete" => (),
+//    "insert" => (),
+//    "update" => (),
+//    "update" "of" CommaList<ColumnName> => (),
+//};
+//ForEachRow: () =
+//    "for" "each" "row" => ();
+//WhenClause: () =
+//    "when" Expr => ();
+//// Disallow qualified table names on INSERT, UPDATE, and DELETE statements
+//// within a trigger. The table to INSERT, UPDATE, or DELETE is always in
+//// the same database as the table that the trigger fires on.
+//TriggerCmd: () = {
+//    "update" OrConflict? TableName "set" CommaList<Set> Where? => (),
+//    "insert" "into" TableName ("(" CommaList<ColumnName> ")")? Select => (),
+//    "delete" "from" TableName Where? => (),
+//    Select => (),
+//};
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////
-DropTrigger: () =
-    "drop" "trigger" IfExists? Qualified<TriggerName> => ();
+//DropTrigger: () =
+//    "drop" "trigger" IfExists? Qualified<TriggerName> => ();
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
-Attach: () =
-    "attach" "database"? Expr "as" Expr ("key" Expr)? => ();
-Detach: () =
-    "detach" "database"? Expr => ();
+//Attach: () =
+//    "attach" "database"? Expr "as" Expr ("key" Expr)? => ();
+//Detach: () =
+//    "detach" "database"? Expr => ();
 
 ////////////////////////// REINDEX collation //////////////////////////////////
-Reindex: () =
-    "reindex" QualifiedTableName? => ();
+//Reindex: () =
+//    "reindex" QualifiedTableName? => ();
 
 /////////////////////////////////// ANALYZE ///////////////////////////////////
-Analyze: () =
-    "analyze" QualifiedTableName? => ();
+//Analyze: () =
+//    "analyze" QualifiedTableName? => ();
 
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
-AlterTable: () =
-    "alter" "table" QualifiedTableName AlterTableBody => ();
-AlterTableBody: () = {
-    "rename" "to" TableName => (),
-    "add" "column"? ColumnDef => (),
-};
+//AlterTable: () =
+//    "alter" "table" QualifiedTableName AlterTableBody => ();
+//AlterTableBody: () = {
+//    "rename" "to" TableName => (),
+//    "add" "column"? ColumnDef => (),
+//};
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
-ModuleName = Name;
-
-CreateVirtualTable: () =
-    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ModuleName ("(" CommaList<VirtualTableArg>? ")")? => ();
-
-VirtualTableArg: () = {
-    "StringLiteral" => (),
-    "Id" => (),
-    NumericLiteral => (),
-    // TODO ANY
-};
+//ModuleName = Name;
+//
+//CreateVirtualTable: () =
+//    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ModuleName ("(" CommaList<VirtualTableArg>? ")")? => ();
+//
+//VirtualTableArg: () = {
+//    "StringLiteral" => (),
+//    "Id" => (),
+//    NumericLiteral => (),
+//    // TODO ANY
+//};
 
 //////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
 With: () =
