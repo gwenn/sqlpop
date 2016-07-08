@@ -13,4 +13,4 @@ SQL parser (as understood by SQLite)
 Currenly, only the lexer is complete and tested.
 The parser is not complete (some expressions parsing are missing) and no AST is generated...
 
-Currently, I can't make any progress anymore because nor my laptop, nor Travis can build the project (see https://github.com/nikomatsakis/lalrpop/issues/65).
+Currently, I can't make progress anymore because nor my laptop, nor Travis can build the project (see https://github.com/nikomatsakis/lalrpop/issues/65).
