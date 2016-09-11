@@ -1,6 +1,7 @@
 use tok::{self, Tok};
 
-#[LALR] grammar<'input>(text: &'input str);
+#[LALR]
+#[recursive_ascent] grammar<'input>(text: &'input str);
 
 CommaList<T>: Vec<T> = {
     T => vec![<>],
