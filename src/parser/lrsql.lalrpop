@@ -1,6 +1,6 @@
 use tok::{self, Tok};
 
-grammar<'input>(text: &'input str)["LALR(1)"];
+grammar<'input>(text: &'input str);
 
 CommaList<T>: Vec<T> = {
     T => vec![<>],
