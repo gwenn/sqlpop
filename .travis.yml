@@ -4,4 +4,4 @@ rust:
 cache: cargo
 script:
 #  - cargo build --verbose
-  - cargo test --verbose --release
+  - cargo test --verbose
