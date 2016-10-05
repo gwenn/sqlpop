@@ -98,7 +98,7 @@ fn test_column_definition() {
 
 #[test]
 fn test_column_constraints() {
-    parse_sql("CREATE TABLE test (id CONSTRAINTS not_null NOT NULL)").unwrap();
+    parse_sql("CREATE TABLE test (id CONSTRAINT not_null NOT NULL)").unwrap();
     parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT)").unwrap();
     parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)").unwrap();
     parse_sql("CREATE TABLE test (id UNIQUE)").unwrap();
@@ -111,7 +111,7 @@ fn test_column_constraints() {
 
 #[test]
 fn test_table_constraints() {
-    parse_sql("CREATE TABLE test (id, CONSTRAINTS pk PRIMARY KEY (id))").expect("PK constraint supported");
+    parse_sql("CREATE TABLE test (id, CONSTRAINT pk PRIMARY KEY (id))").expect("PK constraint supported");
     parse_sql("CREATE TABLE test (id, UNIQUE (id))").expect("UNIQUE constraint supported");
     parse_sql("CREATE TABLE test (id, CHECK (id > 0))").expect("CHECK constraint supported");
     parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id))").expect("FK constaint with one column reference supported");

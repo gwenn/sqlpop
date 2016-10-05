@@ -1,6 +1,7 @@
 use tok::{self, Tok};
 
 #[LALR]
+#[recursive_ascent]
 grammar<'input>(text: &'input str);
 
 CommaList<T>: Vec<T> = {
@@ -14,7 +15,8 @@ CommaList<T>: Vec<T> = {
 Qualified<T>: () =
     (DatabaseName ".")? T => ();
 
-pub CmdList: Vec<Option<()>> = {
+// TODO Make it public when ready
+CmdList: Vec<Option<()>> = {
     <v:(<ExplainCmd?> ";")*> <e:ExplainCmd?> => match e {
         None => v,
         e => {
@@ -25,7 +27,7 @@ pub CmdList: Vec<Option<()>> = {
     }
 };
 
-pub ExplainCmd: () =
+ExplainCmd: () =
     ("explain" ("query" "plan")?)? Cmd => ();
 
 pub Cmd: () = {
