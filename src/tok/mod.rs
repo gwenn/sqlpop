@@ -1,6 +1,6 @@
 //! A SQL tokenizer.
 //! Adapted from [LALRPOP own Tokenizer](https://github.com/nikomatsakis/lalrpop/blob/master/lalrpop/src/tok/mod.rs)
-//! and [SQLite tokenizer](http://www.sqlite.org/cgi/src/artifact/32aeca12f0d57a5c)
+//! and [SQLite tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
 
 use std::str::CharIndices;
 use std::ascii::AsciiExt;

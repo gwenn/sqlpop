@@ -1,3 +1,6 @@
+//! A SQL parser.
+//! Adapted from [SQLite parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/parse.y)
+
 use lalrpop_util;
 use tok;
 
