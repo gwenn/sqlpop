@@ -1,6 +1,6 @@
 # SQLPOP
 
-[![Build Status](https://travis-ci.org/gwenn/sqlpop.svg?branch=master)](https://travis-ci.org/gwenn/sqlpop)
+[![Build Status](https://travis-ci.org/gwenn/sqlpop.svg?branch=master)](https://travis-ci.org/gwenn/sqlpop) [![Latest Version](https://img.shields.io/crates/v/sqlpop.svg)](https://crates.io/crates/sqlpop)
 
 SQL parser (as understood by SQLite)
 
