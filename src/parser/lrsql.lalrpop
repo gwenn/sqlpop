@@ -91,6 +91,7 @@ Release: () =
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 DatabaseName = Name;
+#[inline]
 TableName = Name;
 
 CreateTable: () =
@@ -446,8 +447,8 @@ OtherExpr: () = {
     "(" Expr ")" => (),
     Id => (),
 // TODO JOIN_KW
-//    Name "." Name => (), // FIXME Ambiguity
-//    Name "." Name "." Name => (),
+    Name "." Name => (),
+    Name "." Name "." Name => (),
     "Variable" => (),
     "cast" "(" Expr "as" TypeName ")" => (),
     Id "(" Distinct? CommaList<Expr>? ")" => (),
