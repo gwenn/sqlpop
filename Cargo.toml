@@ -4,13 +4,15 @@ version = "0.1.0"
 authors = ["gwenn"]
 description = "SQL parser (as understood by SQLite)"
 repository = "https://github.com/gwenn/sqlpop"
+documentation = "https://docs.rs/sqlpop"
 readme = "README.md"
 keywords = ["sql", "parser", "sqlite"]
+categories = ["parser-implementations"]
 license = "Apache-2.0/MIT"
 build = "build.rs" # LALRPOP preprocessing
 
 [dependencies]
 lalrpop-util = "0.12.0"
 
-[build-dependencies.lalrpop]
-version = "0.12.0"
+[build-dependencies]
+lalrpop = "0.12.0"

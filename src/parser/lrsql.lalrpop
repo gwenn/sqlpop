@@ -1,4 +1,5 @@
 use tok::{self, Tok};
+use ast::{Name, Stmt, Type, TypeSize};
 
 #[LALR]
 #[recursive_ascent]
@@ -106,19 +107,21 @@ IfNotExists: () =
 
 ColumnName = Name;
 
-Id: () = {
-    "Id" => (),
-    "indexed" => (),
+Id: Name = {
+    <id:"Id"> => {
+        return id.to_string();
+    },
+    "indexed" => "INDEXED".to_string(),
     // TODO fallback
 };
 
-IdString: () = {
-    Id => (),
+IdString: Name = {
+    Id,
     // TODO "StringLiteral",
 };
 // nm
-Name: () = {
-    Id => (),
+Name: Name = {
+    Id,
     // TODO "StringLiteral",
     // TODO "cross", "inner", left", "natural", "outer", "right"
 };
@@ -132,22 +135,27 @@ ColumnDef: () =
 QualifiedTableName = Qualified<TableName>;
 
 // typetoken
-TypeName: () = {
-    IdString+ => (),
-    IdString+ "(" SignedNumber ")" => (),
-    IdString+ "(" SignedNumber "," SignedNumber ")" => (),
+TypeName: Type = {
+    <IdString+> => Type { name: <>.concat(), size: None },
+    <name:IdString+> "(" <size:SignedNumber> ")" => Type { name: name.concat(), size: Some(TypeSize::MaxSize(size)) },
+    <name:IdString+> "(" <n1:SignedNumber> "," <n2:SignedNumber> ")" => Type { name: name.concat(), size: Some(TypeSize::TypeSize(n1, n2)) },
 };
 // signed
-SignedNumber: () =
-    (Sign)? NumericLiteral => ();
-Sign: () = {
-    "+" => (),
-    "-" => (),
+SignedNumber: String =
+    <sign:(Sign)?> <num:NumericLiteral> => {
+        match sign {
+            Some(sign) => format!("{}{}", sign, num),
+            None => num.to_string(),
+        }
+    };
+Sign: &'static str = {
+    "+" => "+",
+    "-" => "-",
 };
 // number
-NumericLiteral: () = {
-    "Integer" => (),
-    "Float" => (),
+NumericLiteral = {
+    "Integer",
+    "Float",
 };
 
 CollationName = IdString;
@@ -481,8 +489,8 @@ DropIndex: () =
     "drop" "index" IfExists? Qualified<IndexName> => ();
 
 ///////////////////////////// The VACUUM command /////////////////////////////
-Vacuum: () =
-    "vacuum" DatabaseName? => ();
+Vacuum: Stmt =
+    "vacuum" <DatabaseName?> => Stmt::Vacuum(<>);
 
 ///////////////////////////// The PRAGMA command /////////////////////////////
 PragmaName = Name;
