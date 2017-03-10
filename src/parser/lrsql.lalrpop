@@ -1,5 +1,5 @@
 use tok::{self, Tok};
-use ast::{Name, Stmt, Type, TypeSize};
+use ast::*;
 
 #[LALR]
 #[recursive_ascent]
@@ -13,8 +13,8 @@ CommaList<T>: Vec<T> = {
         v
     },
 };
-Qualified<T>: () =
-    (DatabaseName ".")? T => ();
+Qualified<T>: QualifiedName =
+    <db_name:(<DatabaseName> ".")?> <name:T> => QualifiedName { db_name: db_name, name: name };
 
 // TODO Make it public when ready
 CmdList: Vec<Option<()>> = {
@@ -62,33 +62,33 @@ pub Cmd: () = {
 ///////////////////// Begin and end transactions. ////////////////////////////
 TransactionName = Name;
 
-Transaction: () =
-    "transaction" TransactionName? => ();
+Transaction =
+    "transaction" <TransactionName?>;
 
-Begin: () =
-    "begin" TransactionType? Transaction? => ();
-TransactionType = {
-    "deferred",
-    "immediate",
-    "exclusive",
+Begin: Stmt =
+    "begin" <tt:TransactionType?> <name:Transaction?> => Stmt::Begin(tt, name.unwrap_or(None));
+TransactionType: TransactionType = {
+    "deferred" => TransactionType::Deferred,
+    "immediate" => TransactionType::Immediate,
+    "exclusive" => TransactionType::Exclusive,
 };
 
-Commit: () =
-    CommitHead Transaction? => ();
+Commit: Stmt =
+    CommitHead <Transaction?> => Stmt::Commit(<>.unwrap_or(None));
 CommitHead: () = {
   "commit" => (),
   "end" => (),
 };
 
-Rollback: () =
-    "rollback" Transaction? ("to" "savepoint"? SavepointName)? => ();
+Rollback: Stmt =
+    "rollback" <tx:Transaction?> <sp:("to" "savepoint"? <SavepointName>)?> => Stmt::Rollback { tx_name: tx.unwrap_or(None), savepoint_name: sp };
 
 SavepointName = Name;
 
-Savepoint: () =
-    "savepoint" SavepointName => ();
-Release: () =
-    "release" "savepoint"? SavepointName => ();
+Savepoint: Stmt =
+    "savepoint" <SavepointName> => Stmt::Savepoint(<>);
+Release: Stmt =
+    "release" "savepoint"? <SavepointName> => Stmt::Release(<>);
 
 ///////////////////// The CREATE TABLE statement ////////////////////////////
 DatabaseName = Name;
@@ -170,12 +170,14 @@ ColumnConstraint: () = {
     "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* => (),
 };
 
-ConflictClause: () =
-    "on" "conflict" ResolveType => ();
-ResolveType: () = {
-    RaiseType => (),
-    "ignore" => (),
-    "replace" => (),
+ConflictClause =
+    "on" "conflict" <ResolveType>;
+ResolveType: ResolveType = {
+    "rollback" => ResolveType::Rollback,
+    "abort" => ResolveType::Abort,
+    "fail" => ResolveType::Fail,
+    "ignore" => ResolveType::Ignore,
+    "replace" => ResolveType::Replace,
 };
 
 DefaultValue: () = {
@@ -186,17 +188,17 @@ DefaultValue: () = {
     Id => (),
 };
 
-RefArg: () = {
-    "on" "delete" RefAct => (),
-    "on" "update" RefAct => (),
-    "match" Name => (),
+RefArg: RefArg = {
+    "on" "delete" <RefAct> => RefArg::OnDelete(<>),
+    "on" "update" <RefAct> => RefArg::OnUpdate(<>),
+    "match" <Name> => RefArg::Match(<>),
 };
-RefAct: () = {
-    "set" "null" => (),
-    "set" "default" => (),
-    "cascade" => (),
-    "restrict" => (),
-    "no" "action" => (),
+RefAct: RefAct = {
+    "set" "null" => RefAct::SetNull,
+    "set" "default" => RefAct::SetDefault,
+    "cascade" => RefAct::Cascade,
+    "restrict" => RefAct::Restrict,
+    "no" "action" => RefAct::NoAction,
 };
 
 // term
@@ -210,18 +212,18 @@ LiteralValue: () = {
     "current_timestamp" => (),
 };
 
-SortOrder = {
-    "asc",
-    "desc"
+SortOrder: SortOrder = {
+    "asc" => SortOrder::Asc,
+    "desc" => SortOrder::Desc,
 };
 
 NamedTableConstraint: () =
-    ("constraint" ConstraintName)? TableConstraint => ();
+    <name:("constraint" <ConstraintName>)?> <constraint:TableConstraint> => ();
 TableConstraint: () = {
-    "primary" "key" "(" CommaList<SortedColumn> "autoincrement"? ")" ConflictClause? => (),
-    "unique" "(" CommaList<SortedColumn> ")" ConflictClause? => (),
+    "primary" "key" "(" <columns:CommaList<SortedColumn>> <auto_increment:"autoincrement"?> ")" <conflict_clause:ConflictClause?> => (),
+    "unique" "(" <columns:CommaList<SortedColumn>> ")" <conflict_clause:ConflictClause?> => (),
     "check" "(" Expr ")" => (),
-    "foreign" "key" "(" CommaList<IndexedColumn> ")" "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* DeferSubclause? => (),
+    "foreign" "key" "(" <columns:CommaList<IndexedColumn>> ")" "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* <deref_clause:DeferSubclause?> => (),
 };
  // sortlist
 SortedColumn: () =
@@ -230,24 +232,24 @@ SortedColumn: () =
 IndexedColumn: () =
     ColumnName ("collate" CollationName)? SortOrder? => ();
 
-DeferSubclause: () =
-    "not"? "deferrable" InitDeferredPred? => ();
-InitDeferredPred: () = {
-    "initially" "deferred" => (),
-    "initially" "immediate" => (),
+DeferSubclause: DeferSubclause =
+    <deferrable:"not"?> "deferrable" <init_deferred:InitDeferredPred?> => DeferSubclause { deferrable: deferrable.is_none(), init_deferred: init_deferred };
+InitDeferredPred: InitDeferredPred = {
+    "initially" "deferred" => InitDeferredPred::InitiallyDeferred,
+    "initially" "immediate" => InitDeferredPred::InitiallyImmediate,
 };
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
-DropTable: () =
-    "drop" "table" IfExists? QualifiedTableName => ();
+DropTable: Stmt =
+    "drop" "table" <if_exists:IfExists?> <tbl_name:QualifiedTableName> => Stmt::DropTable { if_exists: if_exists.is_some(), tbl_name: tbl_name };
 IfExists: () =
     "if" "exists" => ();
 
 ///////////////////// The CREATE VIEW statement ///////////////////////////////
 CreateView: () =
     "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
-DropView: () =
-    "drop" "view" IfExists? QualifiedTableName => ();
+DropView: Stmt =
+    "drop" "view" <if_exists:IfExists?> <view_name:QualifiedTableName> => Stmt::DropView { if_exists: if_exists.is_some(), view_name: view_name };
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () =
@@ -286,9 +288,9 @@ Values: () = {
     Values "," "(" CommaList<Expr> ")" => (),
 };
 
-As: () = {
-    "as" Name => (),
-    IdString => (),
+As: As = {
+    "as" <Name> => As::As(<>),
+    <IdString> => As::Elided(<>),
 };
 
 From: () =
@@ -311,22 +313,28 @@ JoinConstraint: () = {
     "using" "(" CommaList<ColumnName> ")" => (),
 };
 
-JoinOperator: () = {
-    "," => (),
-    "join" => (),
-    "natural"? JoinType "join" => (),
+JoinOperator: JoinOperator = {
+    "," => JoinOperator::Comma,
+    "join" => JoinOperator::Join,
+    <natural:"natural"?> <join_type:JoinType> "join" => JoinOperator::TypedJoin { natural: natural.is_some(), join_type: join_type },
 };
-JoinType: () = {
-    "left" "outer"? => (),
-    "inner" => (),
-    "cross" => (),
+JoinType: JoinType = {
+    "left" <"outer"?> => {
+        if <>.is_some() {
+            JoinType::LeftOuter
+        } else {
+            JoinType::Left
+        }
+    },
+    "inner" => JoinType::Inner,
+    "cross" => JoinType::Cross,
 };
 
 IndexName = Name;
 
-Indexed: () = {
-    "indexed" "by" IndexName => (),
-    "not" "indexed" => (),
+Indexed: Indexed = {
+    "indexed" "by" <IndexName> => Indexed::IndexedBy(<>),
+    "not" "indexed" => Indexed::NotIndexed,
 };
 
 Where: () =
@@ -485,8 +493,8 @@ RaiseType = {
 CreateIndex: () =
     "create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
 ///////////////////////////// The DROP INDEX command /////////////////////////
-DropIndex: () =
-    "drop" "index" IfExists? Qualified<IndexName> => ();
+DropIndex: Stmt =
+    "drop" "index" <if_exists:IfExists?> <idx_name:Qualified<IndexName>> => Stmt::DropIndex { if_exists: if_exists.is_some(), idx_name: idx_name };
 
 ///////////////////////////// The VACUUM command /////////////////////////////
 Vacuum: Stmt =
@@ -497,17 +505,17 @@ PragmaName = Name;
 
 Pragma: () =
     "pragma" Qualified<PragmaName> PragmaBody? => ();
-PragmaBody: () = {
-    "=" PragmaValue => (),
-    "(" PragmaValue ")" => (),
+PragmaBody: PragmaBody = {
+    "=" <PragmaValue> => PragmaBody::Equals(<>),
+    "(" <PragmaValue> ")" => PragmaBody::Call(<>),
 };
-PragmaValue: () = {
-    SignedNumber => (),
-    "StringLiteral" => (),
-    Name => (),
-    "on" => (),
-    "delete" => (),
-    "default" => (),
+PragmaValue: PragmaValue = {
+    SignedNumber,
+    <"StringLiteral"> => <>.to_string(),
+    Name,
+    "on" => "on".to_string(),
+    "delete" => "delete".to_string(),
+    "default" => "default".to_string(),
 };
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
@@ -517,16 +525,16 @@ CreateTrigger: () =
     "create" TriggerDecl "begin" (TriggerCmd ";")+ "end" => ();
 TriggerDecl: () =
     "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
-TriggerTime: () = {
-    "before" => (),
-    "after" => (),
-    "instead" "of" => (),
+TriggerTime: TriggerTime = {
+    "before" => TriggerTime::Before,
+    "after" => TriggerTime::After,
+    "instead" "of" => TriggerTime::InsteadOf,
 };
-TriggerEvent: () = {
-    "delete" => (),
-    "insert" => (),
-    "update" => (),
-    "update" "of" CommaList<ColumnName> => (),
+TriggerEvent: TriggerEvent = {
+    "delete" => TriggerEvent::Delete,
+    "insert" => TriggerEvent::Insert,
+    "update" => TriggerEvent::Update,
+    "update" "of" <CommaList<ColumnName>> => TriggerEvent::UpdateOf(<>),
 };
 ForEachRow: () =
     "for" "each" "row" => ();
@@ -543,8 +551,8 @@ TriggerCmd: () = {
 };
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////
-DropTrigger: () =
-    "drop" "trigger" IfExists? Qualified<TriggerName> => ();
+DropTrigger: Stmt =
+    "drop" "trigger" <if_exists:IfExists?> <trigger_name:Qualified<TriggerName>> => Stmt::DropTrigger { if_exists: if_exists.is_some(), trigger_name: trigger_name };
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
 Attach: () =
@@ -553,12 +561,12 @@ Detach: () =
     "detach" "database"? Expr => ();
 
 ////////////////////////// REINDEX collation //////////////////////////////////
-Reindex: () =
-    "reindex" QualifiedTableName? => ();
+Reindex: Stmt =
+    "reindex" <QualifiedTableName?> => Stmt::Reindex { obj_name: <> };
 
 /////////////////////////////////// ANALYZE ///////////////////////////////////
-Analyze: () =
-    "analyze" QualifiedTableName? => ();
+Analyze: Stmt =
+    "analyze" <QualifiedTableName?> => Stmt::Analyze(<>);
 
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
 AlterTable: () =

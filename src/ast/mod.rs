@@ -89,13 +89,13 @@ pub enum Stmt {
     Pragma(QualifiedName, Option<PragmaBody>),
     Reindex { obj_name: Option<QualifiedName> },
     // savepoint name
-    Release(Option<Name>), // TODO distinction between RELEASE and RELEASE SAVEPOINT
+    Release(Name), // TODO distinction between RELEASE and RELEASE SAVEPOINT
     Rollback {
         tx_name: Option<Name>,
         savepoint_name: Option<Name>, // TODO distinction between TO and TO SAVEPOINT
     },
     // savepoint name
-    Savepoint(Option<Name>),
+    Savepoint(Name),
     Select(Select),
     Update {
         with: Option<With>,
