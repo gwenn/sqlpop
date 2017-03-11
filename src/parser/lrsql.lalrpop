@@ -81,7 +81,9 @@ CommitHead: () = {
 };
 
 Rollback: Stmt =
-    "rollback" <tx:Transaction?> <sp:("to" "savepoint"? <SavepointName>)?> => Stmt::Rollback { tx_name: tx.unwrap_or(None), savepoint_name: sp };
+    "rollback" <tx:Transaction?> <sp:("to" "savepoint"? <SavepointName>)?> => Stmt::Rollback {
+        tx_name: tx.unwrap_or(None), savepoint_name: sp
+    };
 
 SavepointName = Name;
 
@@ -137,8 +139,12 @@ QualifiedTableName = Qualified<TableName>;
 // typetoken
 TypeName: Type = {
     <IdString+> => Type { name: <>.concat(), size: None },
-    <name:IdString+> "(" <size:SignedNumber> ")" => Type { name: name.concat(), size: Some(TypeSize::MaxSize(size)) },
-    <name:IdString+> "(" <n1:SignedNumber> "," <n2:SignedNumber> ")" => Type { name: name.concat(), size: Some(TypeSize::TypeSize(n1, n2)) },
+    <name:IdString+> "(" <size:SignedNumber> ")" => Type {
+        name: name.concat(), size: Some(TypeSize::MaxSize(size))
+    },
+    <name:IdString+> "(" <n1:SignedNumber> "," <n2:SignedNumber> ")" => Type {
+        name: name.concat(), size: Some(TypeSize::TypeSize(n1, n2))
+    },
 };
 // signed
 SignedNumber: String =
@@ -160,14 +166,23 @@ NumericLiteral = {
 
 CollationName = IdString;
 
-ColumnConstraint: () = {
-    "primary" "key" SortOrder? ConflictClause? "autoincrement"? => (),
-    "not"? "null" ConflictClause? => (),
-    "unique" ConflictClause? => (),
-    "check" "(" Expr ")" => (),
-    "default" DefaultValue => (),
-    "collate" CollationName => (),
-    "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* => (),
+ColumnConstraint: ColumnConstraint = {
+    "primary" "key" <order:SortOrder?> <conflict_clause:ConflictClause?> <auto_increment:"autoincrement"?> => ColumnConstraint::PrimaryKey {
+        order: order, conflict_clause: conflict_clause, auto_increment: auto_increment.is_some()
+    },
+    <not:"not"?> "null" <conflict_clause:ConflictClause?> => ColumnConstraint::NotNull {
+        nullable: not.is_none(), conflict_clause: conflict_clause
+    },
+    "unique" <ConflictClause?> => ColumnConstraint::Unique(<>),
+    "check" "(" <Expr> ")" => ColumnConstraint::Check(<>),
+    "default" <DefaultValue> => ColumnConstraint::Default(<>),
+    "collate" <collation_name:CollationName> => ColumnConstraint::Collate { collation_name: collation_name },
+    "references" <tbl_name:TableName> <columns:("(" <CommaList<IndexedColumn>> ")")?> <args:RefArg*> => {
+        let clause = ForeignKeyClause {
+            tbl_name: tbl_name, columns: columns, args: args
+        };
+        ColumnConstraint::ForeignKey(clause)
+    },
 };
 
 ConflictClause =
@@ -180,12 +195,12 @@ ResolveType: ResolveType = {
     "replace" => ResolveType::Replace,
 };
 
-DefaultValue: () = {
-    LiteralValue => (),
-    "(" Expr ")" => (),
-    "+" NumericLiteral => (), // Ambiguous grammar with SignedNumber and LiteralValue
-    "-" NumericLiteral => (),
-    Id => (),
+DefaultValue: DefaultValue = {
+    <LiteralValue> => DefaultValue::Expr(Expr::Literal(<>.to_string())),
+    "(" <Expr> ")" => DefaultValue::Expr(<>),
+    "+" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("+{}", <>))), // Ambiguous grammar with SignedNumber and LiteralValue
+    "-" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("-{}", <>))),
+    <Id> => DefaultValue::Expr(Expr::Id(<>)),
 };
 
 RefArg: RefArg = {
@@ -202,14 +217,14 @@ RefAct: RefAct = {
 };
 
 // term
-LiteralValue: () = {
-    NumericLiteral => (),
-    "StringLiteral" => (),
-    "Blob" => (),
-    "null" => (),
-    "current_date" => (),
-    "current_time" => (),
-    "current_timestamp" => (),
+LiteralValue: &'input str = {
+    NumericLiteral,
+    "StringLiteral",
+    "Blob",
+    "null" => "NULL",
+    "current_date" => "CURRENT_DATE",
+    "current_time" => "CURRENT_TIME",
+    "current_timestamp" => "CURRENT_TIMESTAMP",
 };
 
 SortOrder: SortOrder = {
@@ -217,23 +232,40 @@ SortOrder: SortOrder = {
     "desc" => SortOrder::Desc,
 };
 
-NamedTableConstraint: () =
-    <name:("constraint" <ConstraintName>)?> <constraint:TableConstraint> => ();
-TableConstraint: () = {
-    "primary" "key" "(" <columns:CommaList<SortedColumn>> <auto_increment:"autoincrement"?> ")" <conflict_clause:ConflictClause?> => (),
-    "unique" "(" <columns:CommaList<SortedColumn>> ")" <conflict_clause:ConflictClause?> => (),
-    "check" "(" Expr ")" => (),
-    "foreign" "key" "(" <columns:CommaList<IndexedColumn>> ")" "references" TableName ("(" CommaList<IndexedColumn> ")")? RefArg* <deref_clause:DeferSubclause?> => (),
+NamedTableConstraint: NamedTableConstraint =
+    <name:("constraint" <ConstraintName>)?> <constraint:TableConstraint> => NamedTableConstraint {
+        name: name, constraint: constraint
+    };
+TableConstraint: TableConstraint = {
+    "primary" "key" "(" <columns:CommaList<SortedColumn>> <auto_increment:"autoincrement"?> ")" <conflict_clause:ConflictClause?> => TableConstraint::PrimaryKey {
+        columns: columns, auto_increment: auto_increment.is_some(), conflict_clause: conflict_clause
+    },
+    "unique" "(" <columns:CommaList<SortedColumn>> ")" <conflict_clause:ConflictClause?> => TableConstraint::Unique {
+        columns: columns, conflict_clause: conflict_clause
+    },
+    "check" "(" <Expr> ")" => TableConstraint::Check(<>),
+    "foreign" "key" "(" <columns:CommaList<IndexedColumn>> ")" "references" <tbl_name:TableName> <ref_columns:("(" <CommaList<IndexedColumn>> ")")?> <args:RefArg*> <deref_clause:DeferSubclause?> => {
+        let clause = ForeignKeyClause {
+            tbl_name: tbl_name, columns: ref_columns, args: args
+        };
+        TableConstraint::ForeignKey {
+            columns: columns, clause: clause, deref_clause: deref_clause
+        }
+    },
 };
  // sortlist
-SortedColumn: () =
-    Expr SortOrder? => ();
+SortedColumn: SortedColumn =
+    <expr:Expr> <order:SortOrder?> => SortedColumn { expr: expr, order: order };
  // eidlist
-IndexedColumn: () =
-    ColumnName ("collate" CollationName)? SortOrder? => ();
+IndexedColumn: IndexedColumn =
+    <col_name:ColumnName> <collation_name:("collate" <CollationName>)?> <order:SortOrder?> => IndexedColumn {
+        col_name: col_name, collation_name: collation_name, order: order
+    };
 
 DeferSubclause: DeferSubclause =
-    <deferrable:"not"?> "deferrable" <init_deferred:InitDeferredPred?> => DeferSubclause { deferrable: deferrable.is_none(), init_deferred: init_deferred };
+    <deferrable:"not"?> "deferrable" <init_deferred:InitDeferredPred?> => DeferSubclause {
+        deferrable: deferrable.is_none(), init_deferred: init_deferred
+    };
 InitDeferredPred: InitDeferredPred = {
     "initially" "deferred" => InitDeferredPred::InitiallyDeferred,
     "initially" "immediate" => InitDeferredPred::InitiallyImmediate,
@@ -241,7 +273,9 @@ InitDeferredPred: InitDeferredPred = {
 
 ////////////////////////// The DROP TABLE /////////////////////////////////////
 DropTable: Stmt =
-    "drop" "table" <if_exists:IfExists?> <tbl_name:QualifiedTableName> => Stmt::DropTable { if_exists: if_exists.is_some(), tbl_name: tbl_name };
+    "drop" "table" <if_exists:IfExists?> <tbl_name:QualifiedTableName> => Stmt::DropTable {
+        if_exists: if_exists.is_some(), tbl_name: tbl_name
+    };
 IfExists: () =
     "if" "exists" => ();
 
@@ -249,7 +283,9 @@ IfExists: () =
 CreateView: () =
     "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
 DropView: Stmt =
-    "drop" "view" <if_exists:IfExists?> <view_name:QualifiedTableName> => Stmt::DropView { if_exists: if_exists.is_some(), view_name: view_name };
+    "drop" "view" <if_exists:IfExists?> <view_name:QualifiedTableName> => Stmt::DropView {
+        if_exists: if_exists.is_some(), view_name: view_name
+    };
 
 //////////////////////// The SELECT statement /////////////////////////////////
 Select: () =
@@ -337,8 +373,8 @@ Indexed: Indexed = {
     "not" "indexed" => Indexed::NotIndexed,
 };
 
-Where: () =
-    "where" Expr => ();
+Where: Expr =
+    "where" <Expr>;
 
 GroupBy: () =
     "group" "by" CommaList<Expr> ("having" Expr)? => ();
@@ -377,8 +413,8 @@ InsertBody: () = {
 };
 
 /////////////////////////// Expression Processing /////////////////////////////
-Expr: () = {
-    OrExpr => (),
+Expr: Expr = {
+    OrExpr => Expr::Expr, // FIXME
 };
 
 // %left OR.
@@ -490,11 +526,15 @@ RaiseType = {
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////
-CreateIndex: () =
-    "create" "unique"? "index" IfNotExists? Qualified<IndexName> "on" TableName "(" CommaList<SortedColumn> ")" Where? => ();
+CreateIndex: Stmt =
+    "create" <unique:"unique"?> "index" <if_not_exists:IfNotExists?> <idx_name:Qualified<IndexName>> "on" <tbl_name:TableName> "(" <columns:CommaList<SortedColumn>> ")" <where_clause:Where?> => Stmt::CreateIndex {
+      unique: unique.is_some(), if_not_exists: if_not_exists.is_some(), idx_name: idx_name, tbl_name: tbl_name, columns: columns, where_clause: where_clause
+    };
 ///////////////////////////// The DROP INDEX command /////////////////////////
 DropIndex: Stmt =
-    "drop" "index" <if_exists:IfExists?> <idx_name:Qualified<IndexName>> => Stmt::DropIndex { if_exists: if_exists.is_some(), idx_name: idx_name };
+    "drop" "index" <if_exists:IfExists?> <idx_name:Qualified<IndexName>> => Stmt::DropIndex {
+        if_exists: if_exists.is_some(), idx_name: idx_name
+    };
 
 ///////////////////////////// The VACUUM command /////////////////////////////
 Vacuum: Stmt =
@@ -552,7 +592,9 @@ TriggerCmd: () = {
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////
 DropTrigger: Stmt =
-    "drop" "trigger" <if_exists:IfExists?> <trigger_name:Qualified<TriggerName>> => Stmt::DropTrigger { if_exists: if_exists.is_some(), trigger_name: trigger_name };
+    "drop" "trigger" <if_exists:IfExists?> <trigger_name:Qualified<TriggerName>> => Stmt::DropTrigger {
+        if_exists: if_exists.is_some(), trigger_name: trigger_name
+    };
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
 Attach: () =

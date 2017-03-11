@@ -113,7 +113,12 @@ pub enum Stmt {
 
 // TODO
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Expr;
+pub enum Expr {
+    Literal(String),
+    NumericLiteral(String),
+    Id(Name),
+    Expr, // FIXME
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Select {
@@ -301,7 +306,7 @@ pub enum TableConstraint {
     ForeignKey {
         columns: Vec<IndexedColumn>,
         clause: ForeignKeyClause,
-        deref_clause: DeferSubclause,
+        deref_clause: Option<DeferSubclause>,
     },
 }
 
@@ -320,7 +325,7 @@ pub enum DefaultValue {
 pub struct ForeignKeyClause {
     pub tbl_name: Name,
     pub columns: Option<Vec<IndexedColumn>>,
-    pub args: Option<Vec<RefArg>>,
+    pub args: Vec<RefArg>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
