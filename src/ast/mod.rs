@@ -34,7 +34,7 @@ pub enum Stmt {
         trigger_name: QualifiedName,
         time: Option<TriggerTime>,
         event: TriggerEvent,
-        tbl_name: Option<QualifiedName>,
+        tbl_name: QualifiedName,
         for_each_row: bool,
         when_clause: Option<Expr>,
         commands: Vec<TriggerCmd>,
@@ -50,7 +50,7 @@ pub enum Stmt {
         if_not_exists: bool,
         tbl_name: QualifiedName,
         module_name: Name,
-        args: Option<Vec<String>>,
+        args: Option<Vec<Expr>>, // TODO Validate Expr
     },
     Delete {
         with: Option<With>,

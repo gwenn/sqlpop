@@ -31,7 +31,7 @@ CmdList: Vec<Option<()>> = {
 ExplainCmd: () =
     ("explain" ("query" "plan")?)? Cmd => ();
 
-pub Cmd: () = {
+pub Cmd: Stmt = {
     AlterTable,
     Analyze,
     Attach,
@@ -54,7 +54,7 @@ pub Cmd: () = {
     Release,
     Rollback,
     Savepoint,
-    Select,
+    <Select> => Stmt::Select(<>),
     Update,
     Vacuum,
 };
@@ -97,11 +97,15 @@ DatabaseName = Name;
 #[inline]
 TableName = Name;
 
-CreateTable: () =
-    "create" "temp"? "table" IfNotExists? QualifiedTableName CreateTableBody => ();
-CreateTableBody: () = {
-    "(" CommaList<ColumnDef> ("," CommaList<NamedTableConstraint>)? ")" ("without" Name)? => (), // TODO check Name == "rowid"*
-    "as" Select => (),
+CreateTable: Stmt =
+    "create" <temporary:"temp"?> "table" <if_not_exists:IfNotExists?> <tbl_name:QualifiedTableName> <body:CreateTableBody> => Stmt::CreateTable {
+        temporary: temporary.is_some(), if_not_exists: if_not_exists.is_some(), tbl_name: tbl_name, body: body
+    };
+CreateTableBody: CreateTableBody = {
+    "(" <columns:CommaList<ColumnDef>> <constraints:("," <CommaList<NamedTableConstraint>>)?> ")" <without:("without" <Name>)?> => CreateTableBody::ColumnsAndConstraints {
+        columns: columns, constraints: constraints, without: without
+    }, // TODO check Name == "rowid"*
+    "as" <Select> => CreateTableBody::AsSelect(<>),
 };
 
 IfNotExists: () =
@@ -130,8 +134,10 @@ Name: Name = {
 
 ConstraintName = Name;
 
-ColumnDef: () =
-    ColumnName TypeName? (("constraint" ConstraintName)? ColumnConstraint)* => ();
+ColumnDef: ColumnDefinition =
+    <col_name:ColumnName> <col_type:TypeName?> <constraints:NamedColumnConstraint*> => ColumnDefinition {
+        col_name: col_name, col_type: col_type, constraints: constraints
+    };
 
 // fullname
 QualifiedTableName = Qualified<TableName>;
@@ -166,6 +172,10 @@ NumericLiteral = {
 
 CollationName = IdString;
 
+NamedColumnConstraint: NamedColumnConstraint =
+    <name:("constraint" <ConstraintName>)?> <constraint:ColumnConstraint> => NamedColumnConstraint {
+        name: name, constraint: constraint
+    };
 ColumnConstraint: ColumnConstraint = {
     "primary" "key" <order:SortOrder?> <conflict_clause:ConflictClause?> <auto_increment:"autoincrement"?> => ColumnConstraint::PrimaryKey {
         order: order, conflict_clause: conflict_clause, auto_increment: auto_increment.is_some()
@@ -280,48 +290,64 @@ IfExists: () =
     "if" "exists" => ();
 
 ///////////////////// The CREATE VIEW statement ///////////////////////////////
-CreateView: () =
-    "create" "temp"? "view" IfNotExists? QualifiedTableName ("(" CommaList<IndexedColumn> ")")? "as" Select => ();
+CreateView: Stmt =
+    "create" <temporary:"temp"?> "view" <if_not_exists:IfNotExists?> <view_name:QualifiedTableName> <columns:("(" <CommaList<IndexedColumn>> ")")?> "as" <select:Select> => Stmt::CreateView {
+        temporary: temporary.is_some(), if_not_exists: if_not_exists.is_some(), view_name: view_name, columns: columns, select: select
+    };
 DropView: Stmt =
     "drop" "view" <if_exists:IfExists?> <view_name:QualifiedTableName> => Stmt::DropView {
         if_exists: if_exists.is_some(), view_name: view_name
     };
 
 //////////////////////// The SELECT statement /////////////////////////////////
-Select: () =
-    With? SelectNoWith OrderBy? Limit? => ();
+Select: Select =
+    <with:With?> <body:SelectNoWith> <order_by:OrderBy?> <limit:Limit?> => Select {
+        with: with, body: body, order_by: order_by, limit: limit
+    };
 
-SelectNoWith: () = {
-    OneSelect => (),
-    SelectNoWith CompoundOperator OneSelect => (),
+SelectNoWith: SelectBody = {
+    <OneSelect> => SelectBody { select: <>, compounds: None },
+    <body:SelectNoWith> <operator:CompoundOperator> <select:OneSelect> => {
+        let compound = CompoundSelect { operator: operator, select: select };
+        match body.compounds {
+            Some(compounds) => compounds.push(compound),
+            None => body.compounds = Some(vec![compound]),
+        };
+        body
+    },
 };
 
-CompoundOperator: () = {
-        "union" => (),
-        "union" "all" => (),
-        "except" => (),
-        "intersect" => (),
+CompoundOperator: CompoundOperator = {
+    "union" => CompoundOperator::Union,
+    "union" "all" => CompoundOperator::UnionAll,
+    "except" => CompoundOperator::Except,
+    "intersect" => CompoundOperator::Intersect,
 };
 
-OneSelect: () = {
-    "select" Distinct? CommaList<ResultColumn> From? Where? GroupBy? => (),
-    Values => (),
+OneSelect: OneSelect = {
+    "select" <distinctness:Distinct?> <columns:CommaList<ResultColumn>> <from:From?> <where_clause:Where?> <group_by:GroupBy?> => OneSelect::Select {
+        distinctness: distinctness, columns: columns, from: from, where_clause: where_clause, group_by: group_by
+    },
+    <Values> => OneSelect::Values(<>),
 };
 
-Distinct: () = {
-    "distinct" => (),
-    "all" => (),
+Distinct: Distinctness = {
+    "distinct" => Distinctness::Distinct,
+    "all" => Distinctness::All,
 };
 
-ResultColumn: () = {
-    Expr As? => (),
-    "*" => (),
-    TableName "." "*" => (),
+ResultColumn: ResultColumn = {
+    <Expr> <As?> => ResultColumn::Expr(<>),
+    "*" => ResultColumn::Star,
+    <TableName> "." "*" => ResultColumn::TableStar(<>),
 };
 
-Values: () = {
-    "values" "(" CommaList<Expr> ")" => (),
-    Values "," "(" CommaList<Expr> ")" => (),
+Values: Vec<Vec<Expr>> = {
+    "values" "(" <CommaList<Expr>> ")" => vec![<>],
+    <values:Values> "," "(" <others:CommaList<Expr>> ")" => {
+        values.push(others);
+        values
+    },
 };
 
 As: As = {
@@ -329,24 +355,31 @@ As: As = {
     <IdString> => As::Elided(<>),
 };
 
-From: () =
-    "from" SelectTableList => ();
+From: FromClause =
+    "from" <SelectTableList>;
 
-SelectTableList: () = {
-    SelectTable => (),
-    SelectTableList JoinOperator SelectTable JoinConstraint? => (),
+SelectTableList: FromClause = {
+    <SelectTable> => FromClause { select: Box::new(<>), joins: None },
+    <lst:SelectTableList> <operator:JoinOperator> <table:SelectTable> <constraint:JoinConstraint?> => {
+        let join = JoinedSelectTable { operator: operator, table: table, constraint: constraint };
+        match lst.joins {
+            Some(joins) => joins.push(join),
+            None => lst.joins = Some(vec![join]),
+        };
+        lst
+    },
 };
 
-SelectTable: () = {
-    QualifiedTableName As? Indexed? => (),
-    QualifiedTableName "(" CommaList<Expr>? ")" As? => (),
-    "(" Select ")" As? => (),
-    "(" SelectTableList ")" As? => (),
+SelectTable: SelectTable = {
+    <QualifiedTableName> <As?> <Indexed?> => SelectTable::Table(<>),
+    <QualifiedTableName> "(" <CommaList<Expr>?> ")" <As?> => SelectTable::TableCall(<>),
+    "(" <Select> ")" <As?> => SelectTable::Select(<>),
+    "(" <SelectTableList> ")" <As?> => SelectTable::Sub(<>),
 };
 
-JoinConstraint: () = {
-    "on" Expr => (),
-    "using" "(" CommaList<ColumnName> ")" => (),
+JoinConstraint: JoinConstraint = {
+    "on" <Expr> => JoinConstraint::On(<>),
+    "using" "(" <CommaList<ColumnName>> ")" => JoinConstraint::Using(<>),
 };
 
 JoinOperator: JoinOperator = {
@@ -376,40 +409,50 @@ Indexed: Indexed = {
 Where: Expr =
     "where" <Expr>;
 
-GroupBy: () =
-    "group" "by" CommaList<Expr> ("having" Expr)? => ();
+GroupBy: GroupBy =
+    "group" "by" <exprs:CommaList<Expr>> <having:("having" <Expr>)?> => GroupBy {
+        exprs: exprs, having: having
+    };
 
-OrderBy: () =
-    "order" "by" CommaList<SortedColumn> => ();
+OrderBy: Vec<SortedColumn> =
+    "order" "by" <CommaList<SortedColumn>>;
 
-Limit: () = {
-    "limit" Expr => (),
-    "limit" Expr "offset" Expr => (),
-    "limit" Expr "," Expr => (),
+Limit: Limit = {
+    "limit" <Expr> => Limit { expr: <>, offset: None },
+    "limit" <expr:Expr> "offset" <offset:Expr> => Limit { expr: expr, offset: Some(offset) },
+    "limit" <expr:Expr> "," <offset:Expr> => Limit { expr: expr, offset: Some(offset) },
 };
 
 /////////////////////////// The DELETE statement /////////////////////////////
-Delete: () =
-    With? "delete" "from" QualifiedTableName Indexed? Where? OrderBy? Limit? => ();
+Delete: Stmt =
+    <with:With?> "delete" "from" <tbl_name:QualifiedTableName> <indexed:Indexed?> <where_clause:Where?> <order_by:OrderBy?> <limit:Limit?> => Stmt::Delete {
+        with: with, tbl_name: tbl_name, indexed: indexed, where_clause: where_clause, order_by: order_by, limit: limit
+    };
 
 ////////////////////////// The UPDATE command ////////////////////////////////
-Update: () =
-    With? "update" OrConflict? QualifiedTableName Indexed? "set" CommaList<Set> Where? OrderBy? Limit? => ();
-OrConflict:() =
-    "or" ResolveType => ();
-Set:() =
-    ColumnName "=" Expr => ();
+Update: Stmt =
+    <with:With?> "update" <or_conflict:OrConflict?> <tbl_name:QualifiedTableName> <indexed:Indexed?> "set" <sets:CommaList<Set>> <where_clause:Where?> <order_by:OrderBy?> <limit:Limit?> => Stmt::Update {
+        with: with, or_conflict: or_conflict, tbl_name: tbl_name, indexed: indexed, sets: sets, where_clause: where_clause, order_by: order_by, limit: limit
+    };
+OrConflict: ResolveType =
+    "or" <ResolveType>;
+Set: Set =
+    <col_name:ColumnName> "=" <expr:Expr> => Set {
+        col_name: col_name, expr: expr
+    };
 
 ////////////////////////// The INSERT command /////////////////////////////////
-Insert: () =
-    With? InsertCmd "into" QualifiedTableName ("(" CommaList<ColumnName> ")")? InsertBody => ();
-InsertCmd: () = {
-    "insert" OrConflict? => (),
-    "replace" => (),
+Insert: Stmt =
+    <with:With?> <or_conflict:InsertCmd> "into" <tbl_name:QualifiedTableName> <columns:("(" <CommaList<ColumnName>> ")")?> <body:InsertBody> => Stmt::Insert {
+        with: with, or_conflict: or_conflict, tbl_name: tbl_name, columns: columns, body: body
+    };
+InsertCmd: Option<ResolveType> = {
+    "insert" <OrConflict?>,
+    "replace" => Some(ResolveType::Replace),
 };
-InsertBody: () = {
-    Select => (),
-    "default" "values" => (),
+InsertBody: InsertBody = {
+    Select => InsertBody::Select(<>),
+    "default" "values" => InsertBody::DefaultValues,
 };
 
 /////////////////////////// Expression Processing /////////////////////////////
@@ -543,8 +586,8 @@ Vacuum: Stmt =
 ///////////////////////////// The PRAGMA command /////////////////////////////
 PragmaName = Name;
 
-Pragma: () =
-    "pragma" Qualified<PragmaName> PragmaBody? => ();
+Pragma: Stmt =
+    "pragma" <Qualified<PragmaName>> <PragmaBody?> => Stmt::Pragma(<>);
 PragmaBody: PragmaBody = {
     "=" <PragmaValue> => PragmaBody::Equals(<>),
     "(" <PragmaValue> ")" => PragmaBody::Call(<>),
@@ -561,10 +604,19 @@ PragmaValue: PragmaValue = {
 //////////////////////////// The CREATE TRIGGER command /////////////////////
 TriggerName = Name;
 
-CreateTrigger: () =
-    "create" TriggerDecl "begin" (TriggerCmd ";")+ "end" => ();
-TriggerDecl: () =
-    "temp"? "trigger" IfNotExists? Qualified<TriggerName> TriggerTime? TriggerEvent "on" QualifiedTableName ForEachRow? WhenClause? => ();
+CreateTrigger: Stmt =
+    "create" <trigger:TriggerDecl> "begin" <cmds:(<TriggerCmd> ";")+> "end" => {
+        if let Stmt::CreateTrigger { ref mut commands, .. } = trigger {
+            *commands = cmds;
+        } else {
+            unreachable!();
+        }
+        trigger
+    };
+TriggerDecl: Stmt =
+    <temporary:"temp"?> "trigger" <if_not_exists:IfNotExists?> <trigger_name:Qualified<TriggerName>> <time:TriggerTime?> <event:TriggerEvent> "on" <tbl_name:QualifiedTableName> <for_each_row:ForEachRow?> <when_clause:WhenClause?> => Stmt::CreateTrigger {
+        temporary: temporary.is_some(), if_not_exists: if_not_exists.is_some(), trigger_name: trigger_name, time: time, event: event, tbl_name: tbl_name, for_each_row: for_each_row.is_some(), when_clause: when_clause, commands: Vec::with_capacity(0)
+    };
 TriggerTime: TriggerTime = {
     "before" => TriggerTime::Before,
     "after" => TriggerTime::After,
@@ -578,16 +630,22 @@ TriggerEvent: TriggerEvent = {
 };
 ForEachRow: () =
     "for" "each" "row" => ();
-WhenClause: () =
-    "when" Expr => ();
+WhenClause: Expr =
+    "when" <Expr>;
 // Disallow qualified table names on INSERT, UPDATE, and DELETE statements
 // within a trigger. The table to INSERT, UPDATE, or DELETE is always in
 // the same database as the table that the trigger fires on.
-TriggerCmd: () = {
-    "update" OrConflict? TableName "set" CommaList<Set> Where? => (),
-    "insert" "into" TableName ("(" CommaList<ColumnName> ")")? Select => (),
-    "delete" "from" TableName Where? => (),
-    Select => (),
+TriggerCmd: TriggerCmd = {
+    "update" <or_conflict:OrConflict?> <tbl_name:TableName> "set" <sets:CommaList<Set>> <where_clause:Where?> => TriggerCmd::Update {
+        or_conflict: or_conflict, tbl_name: tbl_name, sets: sets, where_clause: where_clause
+    },
+    "insert" "into" <tbl_name:TableName> <col_names:("(" <CommaList<ColumnName>> ")")?> <select:Select> => TriggerCmd::Insert {
+        tbl_name: tbl_name, col_names: col_names, select: select
+    },
+    "delete" "from" <tbl_name:TableName> <where_clause:Where?> => TriggerCmd::Delete {
+        tbl_name: tbl_name, where_clause: where_clause
+    },
+    <Select> => TriggerCmd::Select(<>),
 };
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////
@@ -597,10 +655,12 @@ DropTrigger: Stmt =
     };
 
 //////////////////////// ATTACH DATABASE file AS name /////////////////////////
-Attach: () =
-    "attach" "database"? Expr "as" Expr ("key" Expr)? => ();
-Detach: () =
-    "detach" "database"? Expr => ();
+Attach: Stmt =
+    "attach" "database"? <expr:Expr> "as" <db_name:Expr> <key:("key" <Expr>)?> => Stmt::Attach {
+        expr: expr, db_name: db_name, key: key
+    };
+Detach: Stmt =
+    "detach" "database"? <Expr> => Stmt::Detach(<>);
 
 ////////////////////////// REINDEX collation //////////////////////////////////
 Reindex: Stmt =
@@ -611,31 +671,37 @@ Analyze: Stmt =
     "analyze" <QualifiedTableName?> => Stmt::Analyze(<>);
 
 //////////////////////// ALTER TABLE table ... ////////////////////////////////
-AlterTable: () =
-    "alter" "table" QualifiedTableName AlterTableBody => ();
-AlterTableBody: () = {
-    "rename" "to" TableName => (),
-    "add" "column"? ColumnDef => (),
+AlterTable: Stmt =
+    "alter" "table" <QualifiedTableName> <AlterTableBody> => Stmt::AlterTable(<>);
+AlterTableBody: AlterTableBody = {
+    "rename" "to" <TableName> => AlterTableBody::RenameTo(<>),
+    "add" "column"? <ColumnDef> => AlterTableBody::AddColumn(<>),
 };
 
 //////////////////////// CREATE VIRTUAL TABLE ... /////////////////////////////
 ModuleName = Name;
 
-CreateVirtualTable: () =
-    "create" "virtual" "table" IfNotExists? QualifiedTableName "using" ModuleName ("(" CommaList<VirtualTableArg>? ")")? => ();
+CreateVirtualTable: Stmt =
+    "create" "virtual" "table" <if_not_exists:IfNotExists?> <tbl_name:QualifiedTableName> "using" <module_name:ModuleName> <args:("(" <CommaList<VirtualTableArg>?> ")")?> => Stmt::CreateVirtualTable {
+        if_not_exists: if_not_exists.is_some(), tbl_name: tbl_name, module_name: module_name, args: args.unwrap_or(None)
+    };
 
-VirtualTableArg: () = {
-    "StringLiteral" => (),
-    "Id" => (),
-    NumericLiteral => (),
+VirtualTableArg: Expr = {
+    "StringLiteral" => Expr::Literal(<>.to_string()),
+    "Id" => Expr::Id(<>.to_string()),
+    NumericLiteral => Expr::NumericLiteral(<>.to_string()),
     // TODO ANY
 };
 
 //////////////////////// COMMON TABLE EXPRESSIONS ////////////////////////////
-With: () =
-    "with" "recursive"? CommaList<CommonTableExpr> => ();
-CommonTableExpr: () =
-    TableName ("(" CommaList<IndexedColumn> ")")? "as" "(" Select ")" => ();
+With: With =
+    "with" <recursive:"recursive"?> <ctes:CommaList<CommonTableExpr>> => With {
+        recursive: recursive.is_some(), ctes: ctes
+    };
+CommonTableExpr: CommonTableExpr =
+    <tbl_name:TableName> <columns:("(" <CommaList<IndexedColumn>> ")")?> "as" "(" <select:Select> ")" => CommonTableExpr {
+        tbl_name: tbl_name, columns: columns, select: select
+    };
 
 extern {
     type Location = usize;
