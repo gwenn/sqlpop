@@ -309,8 +309,9 @@ SelectNoWith: SelectBody = {
     <OneSelect> => SelectBody { select: <>, compounds: None },
     <body:SelectNoWith> <operator:CompoundOperator> <select:OneSelect> => {
         let compound = CompoundSelect { operator: operator, select: select };
+        let mut body = body;
         match body.compounds {
-            Some(compounds) => compounds.push(compound),
+            Some(ref mut compounds) => compounds.push(compound),
             None => body.compounds = Some(vec![compound]),
         };
         body
@@ -345,6 +346,7 @@ ResultColumn: ResultColumn = {
 Values: Vec<Vec<Expr>> = {
     "values" "(" <CommaList<Expr>> ")" => vec![<>],
     <values:Values> "," "(" <others:CommaList<Expr>> ")" => {
+        let mut values = values;
         values.push(others);
         values
     },
@@ -362,8 +364,9 @@ SelectTableList: FromClause = {
     <SelectTable> => FromClause { select: Box::new(<>), joins: None },
     <lst:SelectTableList> <operator:JoinOperator> <table:SelectTable> <constraint:JoinConstraint?> => {
         let join = JoinedSelectTable { operator: operator, table: table, constraint: constraint };
+        let mut lst = lst;
         match lst.joins {
-            Some(joins) => joins.push(join),
+            Some(ref mut joins) => joins.push(join),
             None => lst.joins = Some(vec![join]),
         };
         lst
@@ -606,6 +609,7 @@ TriggerName = Name;
 
 CreateTrigger: Stmt =
     "create" <trigger:TriggerDecl> "begin" <cmds:(<TriggerCmd> ";")+> "end" => {
+        let mut trigger = trigger;
         if let Stmt::CreateTrigger { ref mut commands, .. } = trigger {
             *commands = cmds;
         } else {
