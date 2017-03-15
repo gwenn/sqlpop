@@ -1,6 +1,6 @@
 [package]
 name = "sqlpop"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["gwenn"]
 description = "SQL parser (as understood by SQLite)"
 repository = "https://github.com/gwenn/sqlpop"
