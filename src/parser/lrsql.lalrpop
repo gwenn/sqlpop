@@ -540,35 +540,46 @@ BitNotExpr: () = {
     "+" BitNotExpr => (),
     OtherExpr => (),
 };
-OtherExpr: () = {
-    LiteralValue => (),
-    "(" Expr ")" => (),
-    Id => (),
+OtherExpr: Expr = {
+    <LiteralValue> => Expr::Literal(<>.to_string()),
+    "(" <Expr> ")" => Expr::Parenthesized(Box::new(<>)),
+    <Id> => Expr::Id(<>),
 // TODO JOIN_KW
-    Name "." Name => (),
-    Name "." Name "." Name => (),
-    "Variable" => (),
-    "cast" "(" Expr "as" TypeName ")" => (),
-    Id "(" Distinct? CommaList<Expr>? ")" => (),
-    Id "(" "*" ")" => (),
-    "(" Select ")" => (),
-    "exists" "(" Select ")" => (),
-    "case" Expr? ("when" Expr "then" Expr)+ ("else" Expr)? "end" => (),
-    "raise" "(" "ignore" ")" => (),
-    "raise" "(" RaiseType "," "StringLiteral" ")" => (), // TODO Name versus StringLiteral
+    <Name> "." <Name> => Expr::Qualified(<>),
+    <Name> "." <Name> "." <Name> => Expr::DoublyQualified(<>),
+    <"Variable"> => Expr::Variable(<>.to_string()),
+    "cast" "(" <expr:Expr> "as" <type_name:TypeName> ")" => Expr::Cast {
+        expr: Box::new(expr),
+        type_name: type_name,
+    },
+    <name:Id> "(" <distinctness:Distinct?> <args:CommaList<Expr>?> ")" => Expr::FunctionCall {
+        name: name,
+        distinctness: distinctness,
+        args: args.map(|v| v.into_iter().map(|e| Box::new(e)).collect()),
+    },
+    <Id> "(" "*" ")" => Expr::FunctionCallStar(<>),
+    "(" <Select> ")" => Expr::Select(Box::new(<>)),
+    "exists" "(" <Select> ")" => Expr::Exists(Box::new(<>)),
+    "case" <base:Expr?> <pairs:("when" <Expr> "then" <Expr>)+> <else_expr:("else" <Expr>)?> "end" => Expr::Case {
+        base: base.map(|e| Box::new(e)),
+        when_then_pairs: pairs.into_iter().map(|(w,t)| (Box::new(w), Box::new(t))).collect(),
+        else_expr: else_expr.map(|e| Box::new(e)),
+    },
+    "raise" "(" "ignore" ")" => Expr::Raise(ResolveType::Ignore, None),
+    "raise" "(" <rt:RaiseType> "," <err:"StringLiteral"> ")" => Expr::Raise(rt, Some(err.to_string())), // TODO Name versus StringLiteral
 };
 
-LikeOperator: () = {
-    "glob" => (),
-    "like" => (),
-    "match" => (),
-    "regexp" => (),
+LikeOperator: LikeOperator = {
+    "glob" => LikeOperator::Glob,
+    "like" => LikeOperator::Like,
+    "match" => LikeOperator::Match,
+    "regexp" => LikeOperator::Regexp,
 };
 
-RaiseType = {
-    "rollback",
-    "abort",
-    "fail",
+RaiseType: ResolveType = {
+    "rollback" => ResolveType::Rollback,
+    "abort" => ResolveType::Abort,
+    "fail" => ResolveType::Fail,
 };
 
 ///////////////////////////// The CREATE INDEX command ///////////////////////

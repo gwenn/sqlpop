@@ -114,10 +114,52 @@ pub enum Stmt {
 // TODO
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
-    Literal(String),
-    NumericLiteral(String),
-    Id(Name),
+    // CASE expression
+    Case {
+        base: Option<Box<Expr>>,
+        when_then_pairs: Vec<(Box<Expr>, Box<Expr>)>,
+        else_expr: Option<Box<Expr>>,
+    },
+    // CAST expression
+    Cast {
+        expr: Box<Expr>,
+        type_name: Type,
+    },
+    DoublyQualified(String, String, String),
     Expr, // FIXME
+    // EXISTS subquery
+    Exists(Box<Select>),
+    // call to a built-in function
+    FunctionCall {
+        name: String,
+        distinctness: Option<Distinctness>,
+        args: Option<Vec<Box<Expr>>>,
+    },
+    // Function call expression with '*' as arg
+    FunctionCallStar(String),
+    // Identifier
+    Id(Name),
+    // Literal string expression
+    Literal(String),
+    // Literal numeric expression
+    NumericLiteral(String),
+    // Parenthesized subexpression
+    Parenthesized(Box<Expr>),
+    Qualified(String, String),
+    // RAISE function call
+    Raise(ResolveType, Option<String>),
+    // Subquery expression
+    Select(Box<Select>),
+    // Parameters
+    Variable(String),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LikeOperator {
+    Glob,
+    Like,
+    Match,
+    Regexp,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
