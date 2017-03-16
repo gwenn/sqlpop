@@ -524,22 +524,23 @@ MulExpr: () = {
     ConcatExpr => (),
 };
 // %left CONCAT.
-ConcatExpr: () = {
-    ConcatExpr "||" CollateExpr => (),
-    CollateExpr => (),
+ConcatExpr: Expr = {
+    <e1:ConcatExpr> "||" <e2:CollateExpr> => Expr::Concat(Box::new(e1), Box::new(e2)),
+    <CollateExpr> => <>,
 };
 // %left COLLATE.
-CollateExpr: () = {
-    CollateExpr "collate" CollationName => (),
-    BitNotExpr => (),
+CollateExpr: Expr = {
+    <expr:CollateExpr> "collate" <name:CollationName> => Expr::Collate(Box::new(expr), name),
+    <BitNotExpr> => <>,
 };
 // %right BITNOT.
-BitNotExpr: () = {
-    "~" BitNotExpr => (),
-    "-" BitNotExpr => (),
-    "+" BitNotExpr => (),
-    OtherExpr => (),
+BitNotExpr: Expr = {
+    "~" <BitNotExpr> => Expr::UnaryBitwiseNot(Box::new(<>)),
+    "-" <BitNotExpr> => Expr::UnaryNegative(Box::new(<>)),
+    "+" <BitNotExpr> => Expr::UnaryPositive(Box::new(<>)),
+    <OtherExpr> => <>,
 };
+
 OtherExpr: Expr = {
     <LiteralValue> => Expr::Literal(<>.to_string()),
     "(" <Expr> ")" => Expr::Parenthesized(Box::new(<>)),
@@ -558,7 +559,7 @@ OtherExpr: Expr = {
         args: args.map(|v| v.into_iter().map(|e| Box::new(e)).collect()),
     },
     <Id> "(" "*" ")" => Expr::FunctionCallStar(<>),
-    "(" <Select> ")" => Expr::Select(Box::new(<>)),
+    "(" <Select> ")" => Expr::Subquery(Box::new(<>)),
     "exists" "(" <Select> ")" => Expr::Exists(Box::new(<>)),
     "case" <base:Expr?> <pairs:("when" <Expr> "then" <Expr>)+> <else_expr:("else" <Expr>)?> "end" => Expr::Case {
         base: base.map(|e| Box::new(e)),

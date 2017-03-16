@@ -1,3 +1,5 @@
+//! Abstract Syntax Tree
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Stmt {
     // table name, body
@@ -125,7 +127,11 @@ pub enum Expr {
         expr: Box<Expr>,
         type_name: Type,
     },
-    DoublyQualified(String, String, String),
+    // COLLATE expression
+    Collate(Box<Expr>, Name),
+    // String concatenation (||)
+    Concat(Box<Expr>, Box<Expr>),
+    DoublyQualified(Name, Name, Name),
     Expr, // FIXME
     // EXISTS subquery
     Exists(Box<Select>),
@@ -145,11 +151,17 @@ pub enum Expr {
     NumericLiteral(String),
     // Parenthesized subexpression
     Parenthesized(Box<Expr>),
-    Qualified(String, String),
+    Qualified(Name, Name),
     // RAISE function call
     Raise(ResolveType, Option<String>),
     // Subquery expression
-    Select(Box<Select>),
+    Subquery(Box<Select>),
+    // Unary bitwise negation (~) expression
+    UnaryBitwiseNot(Box<Expr>),
+    // Unary negative-sign expression
+    UnaryNegative(Box<Expr>),
+    // Unary positive-sign expression
+    UnaryPositive(Box<Expr>),
     // Parameters
     Variable(String),
 }
@@ -160,6 +172,28 @@ pub enum LikeOperator {
     Like,
     Match,
     Regexp,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Operator {
+    Add,
+    BitwiseAnd,
+    BitwiseOr,
+    Concat,
+    Equals, // = or ==
+    Divide,
+    Greater,
+    GreaterEquals,
+    LeftShift,
+    Less,
+    LessEquals,
+    LogicalAnd,
+    LogicalOr,
+    Multiply,
+    Modulus,
+    NotEquals, // != or <>
+    RightShift,
+    Substract,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
