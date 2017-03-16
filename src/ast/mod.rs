@@ -122,15 +122,11 @@ pub enum Expr {
         when_then_pairs: Vec<(Box<Expr>, Box<Expr>)>,
         else_expr: Option<Box<Expr>>,
     },
+    Binary(Box<Expr>, Operator, Box<Expr>),
     // CAST expression
-    Cast {
-        expr: Box<Expr>,
-        type_name: Type,
-    },
+    Cast { expr: Box<Expr>, type_name: Type },
     // COLLATE expression
     Collate(Box<Expr>, Name),
-    // String concatenation (||)
-    Concat(Box<Expr>, Box<Expr>),
     DoublyQualified(Name, Name, Name),
     Expr, // FIXME
     // EXISTS subquery
@@ -179,7 +175,7 @@ pub enum Operator {
     Add,
     BitwiseAnd,
     BitwiseOr,
-    Concat,
+    Concat, // String concatenation (||)
     Equals, // = or ==
     Divide,
     Greater,

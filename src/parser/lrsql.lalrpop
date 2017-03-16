@@ -494,38 +494,38 @@ EqExpr: () = {
     CompExpr => (),
 };
 // %left GT LE LT GE.
-CompExpr: () = {
-    CompExpr ">" BitExpr => (),
-    CompExpr "=>" BitExpr => (),
-    CompExpr "<=" BitExpr => (),
-    CompExpr "<" BitExpr => (),
-    BitExpr => (),
+CompExpr: Expr = {
+    <e1:CompExpr> ">" <e2:BitExpr> => Expr::Binary(Box::new(e1), Operator::Greater, Box::new(e2)),
+    <e1:CompExpr> "=>" <e2:BitExpr> => Expr::Binary(Box::new(e1), Operator::GreaterEquals, Box::new(e2)),
+    <e1:CompExpr> "<=" <e2:BitExpr> => Expr::Binary(Box::new(e1), Operator::LessEquals, Box::new(e2)),
+    <e1:CompExpr> "<" <e2:BitExpr> => Expr::Binary(Box::new(e1), Operator::Less, Box::new(e2)),
+    <BitExpr> => <>,
 };
 // %right ESCAPE.
 // %left BITAND BITOR LSHIFT RSHIFT.
-BitExpr: () = {
-    BitExpr "&" SumExpr => (),
-    BitExpr "|" SumExpr => (),
-    BitExpr "<<" SumExpr => (),
-    BitExpr ">>" SumExpr => (),
-    SumExpr => (),
+BitExpr: Expr = {
+    <e1:BitExpr> "&" <e2:SumExpr> => Expr::Binary(Box::new(e1), Operator::BitwiseAnd, Box::new(e2)),
+    <e1:BitExpr> "|" <e2:SumExpr> => Expr::Binary(Box::new(e1), Operator::BitwiseOr, Box::new(e2)),
+    <e1:BitExpr> "<<" <e2:SumExpr> => Expr::Binary(Box::new(e1), Operator::LeftShift, Box::new(e2)),
+    <e1:BitExpr> ">>" <e2:SumExpr> => Expr::Binary(Box::new(e1), Operator::RightShift, Box::new(e2)),
+    <SumExpr> => <>,
 };
 // %left PLUS MINUS.
-SumExpr: () = {
-    SumExpr "+" MulExpr => (),
-    SumExpr "-" MulExpr => (),
-    MulExpr => (),
+SumExpr: Expr = {
+    <e1:SumExpr> "+" <e2:MulExpr> => Expr::Binary(Box::new(e1), Operator::Add, Box::new(e2)),
+    <e1:SumExpr> "-" <e2:MulExpr> => Expr::Binary(Box::new(e1), Operator::Substract, Box::new(e2)),
+    <MulExpr> => <>,
 };
 // %left STAR SLASH REM.
-MulExpr: () = {
-    MulExpr "*" ConcatExpr => (),
-    MulExpr "/" ConcatExpr => (),
-    MulExpr "%" ConcatExpr => (),
-    ConcatExpr => (),
+MulExpr: Expr = {
+    <e1:MulExpr> "*" <e2:ConcatExpr> => Expr::Binary(Box::new(e1), Operator::Multiply, Box::new(e2)),
+    <e1:MulExpr> "/" <e2:ConcatExpr> => Expr::Binary(Box::new(e1), Operator::Divide, Box::new(e2)),
+    <e1:MulExpr> "%" <e2:ConcatExpr> => Expr::Binary(Box::new(e1), Operator::Modulus, Box::new(e2)),
+    <ConcatExpr> => <>,
 };
 // %left CONCAT.
 ConcatExpr: Expr = {
-    <e1:ConcatExpr> "||" <e2:CollateExpr> => Expr::Concat(Box::new(e1), Box::new(e2)),
+    <e1:ConcatExpr> "||" <e2:CollateExpr> => Expr::Binary(Box::new(e1), Operator::Concat, Box::new(e2)),
     <CollateExpr> => <>,
 };
 // %left COLLATE.
