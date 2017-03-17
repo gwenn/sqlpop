@@ -116,6 +116,12 @@ pub enum Stmt {
 // TODO
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
+    Between {
+        lhs: Box<Expr>,
+        not: bool,
+        start: Box<Expr>,
+        end: Box<Expr>,
+    },
     // CASE expression
     Case {
         base: Option<Box<Expr>>,
@@ -128,7 +134,6 @@ pub enum Expr {
     // COLLATE expression
     Collate(Box<Expr>, Name),
     DoublyQualified(Name, Name, Name),
-    Expr, // FIXME
     // EXISTS subquery
     Exists(Box<Select>),
     // call to a built-in function
@@ -141,8 +146,23 @@ pub enum Expr {
     FunctionCallStar(String),
     // Identifier
     Id(Name),
+    In {
+        lhs: Box<Expr>,
+        not: bool,
+        rhs: Box<Expr>,
+    },
+    Isnull(Box<Expr>),
+    Like {
+        lhs: Box<Expr>,
+        not: bool,
+        op: LikeOperator,
+        rhs: Box<Expr>,
+        escape: Option<Box<Expr>>,
+    },
     // Literal string expression
     Literal(String),
+    // "NOT NULL" or "NOTNULL"
+    NotNull(Box<Expr>),
     // Literal numeric expression
     NumericLiteral(String),
     // Parenthesized subexpression
@@ -152,12 +172,8 @@ pub enum Expr {
     Raise(ResolveType, Option<String>),
     // Subquery expression
     Subquery(Box<Select>),
-    // Unary bitwise negation (~) expression
-    UnaryBitwiseNot(Box<Expr>),
-    // Unary negative-sign expression
-    UnaryNegative(Box<Expr>),
-    // Unary positive-sign expression
-    UnaryPositive(Box<Expr>),
+    // Unary expression
+    Unary(UnaryOperator, Box<Expr>),
     // Parameters
     Variable(String),
 }
@@ -173,6 +189,7 @@ pub enum LikeOperator {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Operator {
     Add,
+    And,
     BitwiseAnd,
     BitwiseOr,
     Concat, // String concatenation (||)
@@ -180,6 +197,8 @@ pub enum Operator {
     Divide,
     Greater,
     GreaterEquals,
+    Is,
+    IsNot,
     LeftShift,
     Less,
     LessEquals,
@@ -188,8 +207,21 @@ pub enum Operator {
     Multiply,
     Modulus,
     NotEquals, // != or <>
+    Or,
     RightShift,
     Substract,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum UnaryOperator {
+    // bitwise negation (~)
+    BitwiseNot,
+    // negative-sign
+    Negative,
+    // "NOT"
+    Not,
+    // positive-sign
+    Positive,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

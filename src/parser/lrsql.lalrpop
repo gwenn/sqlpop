@@ -460,38 +460,78 @@ InsertBody: InsertBody = {
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: Expr = {
-    OrExpr => Expr::Expr, // FIXME
+    <OrExpr> => <>,
 };
 
 // %left OR.
-OrExpr: () = {
-    OrExpr "or" AndExpr => (),
-    AndExpr => (),
+OrExpr: Expr = {
+    <lhs:OrExpr> "or" <rhs:AndExpr> => Expr::Binary(Box::new(lhs), Operator::Or, Box::new(rhs)),
+    <AndExpr> => <>,
 };
 // %left AND.
-AndExpr: () = {
-    AndExpr "and" NotExpr => (),
-    NotExpr => (),
+AndExpr: Expr = {
+    <lhs:AndExpr> "and" <rhs:NotExpr> => Expr::Binary(Box::new(lhs), Operator::And, Box::new(rhs)),
+    <NotExpr> => <>,
 };
 // %right NOT.
-NotExpr: () = {
-    "not" NotExpr => (),
-    EqExpr => (),
+NotExpr: Expr = {
+    "not" <NotExpr> => Expr::Unary(UnaryOperator::Not, Box::new(<>)),
+    <EqExpr> => <>,
 };
 // %left IS MATCH LIKE_KW BETWEEN IN ISNULL NOTNULL NE EQ.
-EqExpr: () = {
-    EqExpr "=" CompExpr => (),
-    EqExpr "<>" CompExpr => (),
-    EqExpr "not"? LikeOperator CompExpr ("escape" BitExpr)? => (),
-    EqExpr "isnull" => (),
-    EqExpr "notnull" => (),
-    EqExpr "not" "null" => (),
-    EqExpr "is" "not"? CompExpr => (),
-    EqExpr "not"? "between" NotExpr "and" CompExpr => (),
-    EqExpr "not"? "in" "(" Expr ")" => (),
-    EqExpr "not"? "in" "(" Select ")" => (),
-    EqExpr "not"? "in" QualifiedTableName => (),
-    CompExpr => (),
+EqExpr: Expr = {
+    <lhs:EqExpr> "=" <rhs:CompExpr> => Expr::Binary(Box::new(lhs), Operator::Equals, Box::new(rhs)),
+    <lhs:EqExpr> "<>" <rhs:CompExpr> => Expr::Binary(Box::new(lhs), Operator::NotEquals, Box::new(rhs)),
+    <lhs:EqExpr> <not:"not"?> <op:LikeOperator> <rhs:CompExpr> <escape:("escape" <BitExpr>)?> => Expr::Like {
+        lhs: Box::new(lhs),
+        not: not.is_some(),
+        op: op,
+        rhs: Box::new(rhs),
+        escape: escape.map(|e| Box::new(e)),
+    },
+    <EqExpr> "isnull" => Expr::Isnull(Box::new(<>)),
+    <EqExpr> "notnull" => Expr::NotNull(Box::new(<>)),
+    <EqExpr> "not" "null" => Expr::NotNull(Box::new(<>)),
+    <lhs:EqExpr> "is" <not:"not"?> <rhs:CompExpr> => {
+        if not.is_some() {
+            Expr::Binary(Box::new(lhs), Operator::IsNot, Box::new(rhs))
+        } else {
+            Expr::Binary(Box::new(lhs), Operator::Is, Box::new(rhs))
+        }
+    },
+    <lhs:EqExpr> <not:"not"?> "between" <start:NotExpr> "and" <end:CompExpr> => Expr::Between {
+        lhs: Box::new(lhs),
+        not: not.is_some(),
+        start: Box::new(start),
+        end: Box::new(end),
+    },
+    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Expr> ")" => Expr::In {
+        lhs: Box::new(lhs),
+        not: not.is_some(),
+        rhs: Box::new(rhs),
+    },
+    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Select> ")" => Expr::In {
+        lhs: Box::new(lhs),
+        not: not.is_some(),
+        rhs: Box::new(Expr::Subquery(Box::new(rhs))),
+    },
+    <lhs:EqExpr> <not:"not"?> "in" <rhs:QualifiedTableName> => {
+        let QualifiedName {db_name, name} = rhs;
+        if db_name.is_some() {
+            Expr::In {
+                lhs: Box::new(lhs),
+                not: not.is_some(),
+                rhs: Box::new(Expr::Qualified(db_name.unwrap(), name)),
+            }
+        } else {
+            Expr::In {
+                lhs: Box::new(lhs),
+                not: not.is_some(),
+                rhs: Box::new(Expr::Id(name)),
+            }
+        }
+    },
+    <CompExpr> => <>,
 };
 // %left GT LE LT GE.
 CompExpr: Expr = {
@@ -535,9 +575,9 @@ CollateExpr: Expr = {
 };
 // %right BITNOT.
 BitNotExpr: Expr = {
-    "~" <BitNotExpr> => Expr::UnaryBitwiseNot(Box::new(<>)),
-    "-" <BitNotExpr> => Expr::UnaryNegative(Box::new(<>)),
-    "+" <BitNotExpr> => Expr::UnaryPositive(Box::new(<>)),
+    "~" <BitNotExpr> => Expr::Unary(UnaryOperator::BitwiseNot, Box::new(<>)),
+    "-" <BitNotExpr> => Expr::Unary(UnaryOperator::Negative, Box::new(<>)),
+    "+" <BitNotExpr> => Expr::Unary(UnaryOperator::Positive, Box::new(<>)),
     <OtherExpr> => <>,
 };
 
