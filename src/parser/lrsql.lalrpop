@@ -137,7 +137,12 @@ IdString: Name = {
 Name: Name = {
     Id,
     "StringLiteral" => <>.to_string(),
-    // TODO "cross", "inner", left", "natural", "outer", "right"
+    "cross" => "CROSS".to_string(),
+    "inner" => "INNER".to_string(),
+    "left" => "LEFT".to_string(),
+    "natural" => "NATURAL".to_string(),
+    "outer" => "OUTER".to_string(),
+    "right" => "RIGHT".to_string(),
 };
 
 ConstraintName = Name;
@@ -195,13 +200,19 @@ ColumnConstraint: ColumnConstraint = {
     "check" "(" <Expr> ")" => ColumnConstraint::Check(<>),
     "default" <DefaultValue> => ColumnConstraint::Default(<>),
     "collate" <collation_name:CollationName> => ColumnConstraint::Collate { collation_name: collation_name },
-    "references" <tbl_name:TableName> <columns:("(" <CommaList<IndexedColumn>> ")")?> <args:RefArg*> => {
+    "references" <tbl_name:TableName> <columns:("(" <CommaList<IndexedColumn>> ")")?> <args:RefArg*> <deref_clause:FixmeDeferSubclause?> => {
         let clause = ForeignKeyClause {
             tbl_name: tbl_name, columns: columns, args: args
         };
-        ColumnConstraint::ForeignKey(clause)
+        ColumnConstraint::ForeignKey { clause: clause, deref_clause: deref_clause }
     },
 };
+
+// FIXME Ambiguity with "not" "null", so the optional "not" is temporary removed...
+FixmeDeferSubclause: DeferSubclause =
+    "deferrable" <init_deferred:InitDeferredPred?> => DeferSubclause {
+        deferrable: true, init_deferred: init_deferred
+    };
 
 ConflictClause =
     "on" "conflict" <ResolveType>;
@@ -514,10 +525,10 @@ EqExpr: Expr = {
         start: Box::new(start),
         end: Box::new(end),
     },
-    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:CommaList<Expr>> ")" => Expr::InList {
+    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:CommaList<Expr>?> ")" => Expr::InList {
         lhs: Box::new(lhs),
         not: not.is_some(),
-        rhs: rhs.into_iter().map(|e| Box::new(e)).collect(),
+        rhs: rhs.map(|v| v.into_iter().map(|e| Box::new(e)).collect()),
     },
     <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Select> ")" => Expr::InSelect {
         lhs: Box::new(lhs),

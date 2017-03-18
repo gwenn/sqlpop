@@ -156,7 +156,7 @@ pub enum Expr {
     InList {
         lhs: Box<Expr>,
         not: bool,
-        rhs: Vec<Box<Expr>>,
+        rhs: Option<Vec<Box<Expr>>>,
     },
     InSelect {
         lhs: Box<Expr>,
@@ -402,7 +402,10 @@ pub enum ColumnConstraint {
     Check(Expr),
     Default(DefaultValue),
     Collate { collation_name: String },
-    ForeignKey(ForeignKeyClause),
+    ForeignKey {
+        clause: ForeignKeyClause,
+        deref_clause: Option<DeferSubclause>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
