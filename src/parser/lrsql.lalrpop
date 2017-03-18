@@ -16,8 +16,7 @@ CommaList<T>: Vec<T> = {
 Qualified<T>: QualifiedName =
     <db_name:(<DatabaseName> ".")?> <name:T> => QualifiedName { db_name: db_name, name: name };
 
-// TODO Make it public when ready
-CmdList: Vec<Option<()>> = {
+pub CmdList: Vec<Option<Cmd>> = {
     <v:(<ExplainCmd?> ";")*> <e:ExplainCmd?> => match e {
         None => v,
         e => {
@@ -28,10 +27,20 @@ CmdList: Vec<Option<()>> = {
     }
 };
 
-ExplainCmd: () =
-    ("explain" ("query" "plan")?)? Cmd => ();
+ExplainCmd: Cmd =
+    <explain:("explain" <("query" "plan")?>)?> <cmd:Stmt> => {
+        if explain.is_some() {
+            if explain.unwrap().is_some() {
+                Cmd::ExplainQueryPlan(cmd)
+            } else {
+                Cmd::Explain(cmd)
+            }
+        } else {
+            Cmd::Stmt(cmd)
+        }
+    };
 
-pub Cmd: Stmt = {
+Stmt: Stmt = {
     AlterTable,
     Analyze,
     Attach,
@@ -503,31 +512,20 @@ EqExpr: Expr = {
         start: Box::new(start),
         end: Box::new(end),
     },
-    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Expr> ")" => Expr::In {
+    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:CommaList<Expr>> ")" => Expr::InList {
+        lhs: Box::new(lhs),
+        not: not.is_some(),
+        rhs: rhs.into_iter().map(|e| Box::new(e)).collect(),
+    },
+    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Select> ")" => Expr::InSelect {
         lhs: Box::new(lhs),
         not: not.is_some(),
         rhs: Box::new(rhs),
     },
-    <lhs:EqExpr> <not:"not"?> "in" "(" <rhs:Select> ")" => Expr::In {
+    <lhs:EqExpr> <not:"not"?> "in" <rhs:QualifiedTableName> => Expr::InTable {
         lhs: Box::new(lhs),
         not: not.is_some(),
-        rhs: Box::new(Expr::Subquery(Box::new(rhs))),
-    },
-    <lhs:EqExpr> <not:"not"?> "in" <rhs:QualifiedTableName> => {
-        let QualifiedName {db_name, name} = rhs;
-        if db_name.is_some() {
-            Expr::In {
-                lhs: Box::new(lhs),
-                not: not.is_some(),
-                rhs: Box::new(Expr::Qualified(db_name.unwrap(), name)),
-            }
-        } else {
-            Expr::In {
-                lhs: Box::new(lhs),
-                not: not.is_some(),
-                rhs: Box::new(Expr::Id(name)),
-            }
-        }
+        rhs: rhs,
     },
     CompExpr,
 };

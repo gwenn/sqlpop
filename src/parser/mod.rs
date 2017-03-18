@@ -3,7 +3,7 @@
 
 use lalrpop_util;
 use tok;
-use ast::Stmt;
+use ast::Cmd;
 
 #[allow(dead_code)]
 mod lrsql;
@@ -13,10 +13,9 @@ mod test;
 
 pub type ParseError<'input> = lalrpop_util::ParseError<usize, tok::Tok<'input>, tok::Error>;
 
-// Parse a single statement.
-pub fn parse_sql<'input>(input: &'input str) -> Result<Stmt, ParseError<'input>> {
+pub fn parse_sql<'input>(input: &'input str) -> Result<Vec<Option<Cmd>>, ParseError<'input>> {
     let tokenizer = tok::Tokenizer::new(input, 0);
-    let sql = try!(lrsql::parse_Cmd(input, tokenizer));
+    let sql = try!(lrsql::parse_CmdList(input, tokenizer));
 
     Ok(sql)
 }

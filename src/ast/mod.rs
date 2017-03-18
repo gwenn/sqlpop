@@ -1,6 +1,13 @@
 //! Abstract Syntax Tree
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Cmd {
+    Explain(Stmt),
+    ExplainQueryPlan(Stmt),
+    Stmt(Stmt),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Stmt {
     // table name, body
     AlterTable(QualifiedName, AlterTableBody),
@@ -146,10 +153,20 @@ pub enum Expr {
     FunctionCallStar(String),
     // Identifier
     Id(Name),
-    In {
+    InList {
         lhs: Box<Expr>,
         not: bool,
-        rhs: Box<Expr>,
+        rhs: Vec<Box<Expr>>,
+    },
+    InSelect {
+        lhs: Box<Expr>,
+        not: bool,
+        rhs: Box<Select>,
+    },
+    InTable {
+        lhs: Box<Expr>,
+        not: bool,
+        rhs: QualifiedName,
     },
     Isnull(Box<Expr>),
     Like {
