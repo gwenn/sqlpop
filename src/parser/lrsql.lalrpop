@@ -126,6 +126,7 @@ Id: Name = {
     "Id" => <>.to_string(),
     "indexed" => "INDEXED".to_string(),
     // TODO fallback
+    "temp" => "TEMP".to_string(),
 };
 
 IdString: Name = {
@@ -135,7 +136,7 @@ IdString: Name = {
 // nm
 Name: Name = {
     Id,
-    // TODO "StringLiteral",
+    "StringLiteral" => <>.to_string(),
     // TODO "cross", "inner", left", "natural", "outer", "right"
 };
 
@@ -394,8 +395,9 @@ JoinConstraint: JoinConstraint = {
 
 JoinOperator: JoinOperator = {
     "," => JoinOperator::Comma,
-    "join" => JoinOperator::Join,
-    <natural:"natural"?> <join_type:JoinType> "join" => JoinOperator::TypedJoin { natural: natural.is_some(), join_type: join_type },
+    <natural:"natural"?> <join_type:JoinType?> "join" => JoinOperator::TypedJoin {
+        natural: natural.is_some(), join_type: join_type
+    },
 };
 JoinType: JoinType = {
     "left" <"outer"?> => {
@@ -645,7 +647,6 @@ PragmaBody: PragmaBody = {
 };
 PragmaValue: PragmaValue = {
     SignedNumber,
-    "StringLiteral" => <>.to_string(),
     Name,
     "on" => "on".to_string(),
     "delete" => "delete".to_string(),

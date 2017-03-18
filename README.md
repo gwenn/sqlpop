@@ -11,4 +11,4 @@ SQL parser (as understood by SQLite)
 * [SQLite syntax diagram data](http://www.sqlite.org/docsrc/doc/tip/art/syntax/bubble-generator-data.tcl?mimetype=text/plain)
 
 Currenly, only the lexer is complete and tested.
-The parser is not complete (no AST is generated for expressions)...
+The parser is almost complete (see [LARLPOP issues](https://github.com/nikomatsakis/lalrpop/issues/156)).

@@ -325,8 +325,7 @@ pub enum SelectTable {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum JoinOperator {
     Comma,
-    Join,
-    TypedJoin { natural: bool, join_type: JoinType },
+    TypedJoin { natural: bool, join_type: Option<JoinType> },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -350,7 +349,7 @@ pub struct GroupBy {
     pub having: Option<Expr>,
 }
 
-pub type Name = String; // TODO
+pub type Name = String; // TODO distinction between Name and "Name"/[Name]/`Name`
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QualifiedName {
