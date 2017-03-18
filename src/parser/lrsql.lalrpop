@@ -54,7 +54,7 @@ pub Cmd: Stmt = {
     Release,
     Rollback,
     Savepoint,
-    <Select> => Stmt::Select(<>),
+    Select => Stmt::Select(<>),
     Update,
     Vacuum,
 };
@@ -114,9 +114,7 @@ IfNotExists: () =
 ColumnName = Name;
 
 Id: Name = {
-    <id:"Id"> => {
-        return id.to_string();
-    },
+    "Id" => <>.to_string(),
     "indexed" => "INDEXED".to_string(),
     // TODO fallback
 };
@@ -144,7 +142,7 @@ QualifiedTableName = Qualified<TableName>;
 
 // typetoken
 TypeName: Type = {
-    <IdString+> => Type { name: <>.concat(), size: None },
+    IdString+ => Type { name: <>.concat(), size: None },
     <name:IdString+> "(" <size:SignedNumber> ")" => Type {
         name: name.concat(), size: Some(TypeSize::MaxSize(size))
     },
@@ -206,11 +204,11 @@ ResolveType: ResolveType = {
 };
 
 DefaultValue: DefaultValue = {
-    <LiteralValue> => DefaultValue::Expr(Expr::Literal(<>.to_string())),
+    LiteralValue => DefaultValue::Expr(Expr::Literal(<>.to_string())),
     "(" <Expr> ")" => DefaultValue::Expr(<>),
     "+" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("+{}", <>))), // Ambiguous grammar with SignedNumber and LiteralValue
     "-" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("-{}", <>))),
-    <Id> => DefaultValue::Expr(Expr::Id(<>)),
+    Id => DefaultValue::Expr(Expr::Id(<>)),
 };
 
 RefArg: RefArg = {
@@ -306,7 +304,7 @@ Select: Select =
     };
 
 SelectNoWith: SelectBody = {
-    <OneSelect> => SelectBody { select: <>, compounds: None },
+    OneSelect => SelectBody { select: <>, compounds: None },
     <body:SelectNoWith> <operator:CompoundOperator> <select:OneSelect> => {
         let compound = CompoundSelect { operator: operator, select: select };
         let mut body = body;
@@ -329,7 +327,7 @@ OneSelect: OneSelect = {
     "select" <distinctness:Distinct?> <columns:CommaList<ResultColumn>> <from:From?> <where_clause:Where?> <group_by:GroupBy?> => OneSelect::Select {
         distinctness: distinctness, columns: columns, from: from, where_clause: where_clause, group_by: group_by
     },
-    <Values> => OneSelect::Values(<>),
+    Values => OneSelect::Values(<>),
 };
 
 Distinct: Distinctness = {
@@ -338,7 +336,7 @@ Distinct: Distinctness = {
 };
 
 ResultColumn: ResultColumn = {
-    <Expr> <As?> => ResultColumn::Expr(<>),
+    Expr As? => ResultColumn::Expr(<>),
     "*" => ResultColumn::Star,
     <TableName> "." "*" => ResultColumn::TableStar(<>),
 };
@@ -354,14 +352,14 @@ Values: Vec<Vec<Expr>> = {
 
 As: As = {
     "as" <Name> => As::As(<>),
-    <IdString> => As::Elided(<>),
+    IdString => As::Elided(<>),
 };
 
 From: FromClause =
     "from" <SelectTableList>;
 
 SelectTableList: FromClause = {
-    <SelectTable> => FromClause { select: Box::new(<>), joins: None },
+    SelectTable => FromClause { select: Box::new(<>), joins: None },
     <lst:SelectTableList> <operator:JoinOperator> <table:SelectTable> <constraint:JoinConstraint?> => {
         let join = JoinedSelectTable { operator: operator, table: table, constraint: constraint };
         let mut lst = lst;
@@ -374,7 +372,7 @@ SelectTableList: FromClause = {
 };
 
 SelectTable: SelectTable = {
-    <QualifiedTableName> <As?> <Indexed?> => SelectTable::Table(<>),
+    QualifiedTableName As? Indexed? => SelectTable::Table(<>),
     <QualifiedTableName> "(" <CommaList<Expr>?> ")" <As?> => SelectTable::TableCall(<>),
     "(" <Select> ")" <As?> => SelectTable::Select(<>),
     "(" <SelectTableList> ")" <As?> => SelectTable::Sub(<>),
@@ -460,23 +458,23 @@ InsertBody: InsertBody = {
 
 /////////////////////////// Expression Processing /////////////////////////////
 Expr: Expr = {
-    <OrExpr> => <>,
+    OrExpr,
 };
 
 // %left OR.
 OrExpr: Expr = {
     <lhs:OrExpr> "or" <rhs:AndExpr> => Expr::Binary(Box::new(lhs), Operator::Or, Box::new(rhs)),
-    <AndExpr> => <>,
+    AndExpr,
 };
 // %left AND.
 AndExpr: Expr = {
     <lhs:AndExpr> "and" <rhs:NotExpr> => Expr::Binary(Box::new(lhs), Operator::And, Box::new(rhs)),
-    <NotExpr> => <>,
+    NotExpr,
 };
 // %right NOT.
 NotExpr: Expr = {
     "not" <NotExpr> => Expr::Unary(UnaryOperator::Not, Box::new(<>)),
-    <EqExpr> => <>,
+    EqExpr,
 };
 // %left IS MATCH LIKE_KW BETWEEN IN ISNULL NOTNULL NE EQ.
 EqExpr: Expr = {
@@ -531,7 +529,7 @@ EqExpr: Expr = {
             }
         }
     },
-    <CompExpr> => <>,
+    CompExpr,
 };
 // %left GT LE LT GE.
 CompExpr: Expr = {
@@ -539,7 +537,7 @@ CompExpr: Expr = {
     <lhs:CompExpr> "=>" <rhs:BitExpr> => Expr::Binary(Box::new(lhs), Operator::GreaterEquals, Box::new(rhs)),
     <lhs:CompExpr> "<=" <rhs:BitExpr> => Expr::Binary(Box::new(lhs), Operator::LessEquals, Box::new(rhs)),
     <lhs:CompExpr> "<" <rhs:BitExpr> => Expr::Binary(Box::new(lhs), Operator::Less, Box::new(rhs)),
-    <BitExpr> => <>,
+    BitExpr,
 };
 // %right ESCAPE.
 // %left BITAND BITOR LSHIFT RSHIFT.
@@ -548,47 +546,47 @@ BitExpr: Expr = {
     <lhs:BitExpr> "|" <rhs:SumExpr> => Expr::Binary(Box::new(lhs), Operator::BitwiseOr, Box::new(rhs)),
     <lhs:BitExpr> "<<" <rhs:SumExpr> => Expr::Binary(Box::new(lhs), Operator::LeftShift, Box::new(rhs)),
     <lhs:BitExpr> ">>" <rhs:SumExpr> => Expr::Binary(Box::new(lhs), Operator::RightShift, Box::new(rhs)),
-    <SumExpr> => <>,
+    SumExpr,
 };
 // %left PLUS MINUS.
 SumExpr: Expr = {
     <lhs:SumExpr> "+" <rhs:MulExpr> => Expr::Binary(Box::new(lhs), Operator::Add, Box::new(rhs)),
     <lhs:SumExpr> "-" <rhs:MulExpr> => Expr::Binary(Box::new(lhs), Operator::Substract, Box::new(rhs)),
-    <MulExpr> => <>,
+    MulExpr,
 };
 // %left STAR SLASH REM.
 MulExpr: Expr = {
     <lhs:MulExpr> "*" <rhs:ConcatExpr> => Expr::Binary(Box::new(lhs), Operator::Multiply, Box::new(rhs)),
     <lhs:MulExpr> "/" <rhs:ConcatExpr> => Expr::Binary(Box::new(lhs), Operator::Divide, Box::new(rhs)),
     <lhs:MulExpr> "%" <rhs:ConcatExpr> => Expr::Binary(Box::new(lhs), Operator::Modulus, Box::new(rhs)),
-    <ConcatExpr> => <>,
+    ConcatExpr,
 };
 // %left CONCAT.
 ConcatExpr: Expr = {
     <lhs:ConcatExpr> "||" <rhs:CollateExpr> => Expr::Binary(Box::new(lhs), Operator::Concat, Box::new(rhs)),
-    <CollateExpr> => <>,
+    CollateExpr,
 };
 // %left COLLATE.
 CollateExpr: Expr = {
     <expr:CollateExpr> "collate" <name:CollationName> => Expr::Collate(Box::new(expr), name),
-    <BitNotExpr> => <>,
+    BitNotExpr,
 };
 // %right BITNOT.
 BitNotExpr: Expr = {
     "~" <BitNotExpr> => Expr::Unary(UnaryOperator::BitwiseNot, Box::new(<>)),
     "-" <BitNotExpr> => Expr::Unary(UnaryOperator::Negative, Box::new(<>)),
     "+" <BitNotExpr> => Expr::Unary(UnaryOperator::Positive, Box::new(<>)),
-    <OtherExpr> => <>,
+    OtherExpr,
 };
 
 OtherExpr: Expr = {
-    <LiteralValue> => Expr::Literal(<>.to_string()),
+    LiteralValue => Expr::Literal(<>.to_string()),
     "(" <Expr> ")" => Expr::Parenthesized(Box::new(<>)),
-    <Id> => Expr::Id(<>),
+    Id => Expr::Id(<>),
 // TODO JOIN_KW
     <Name> "." <Name> => Expr::Qualified(<>),
     <Name> "." <Name> "." <Name> => Expr::DoublyQualified(<>),
-    <"Variable"> => Expr::Variable(<>.to_string()),
+    "Variable" => Expr::Variable(<>.to_string()),
     "cast" "(" <expr:Expr> "as" <type_name:TypeName> ")" => Expr::Cast {
         expr: Box::new(expr),
         type_name: type_name,
@@ -649,7 +647,7 @@ PragmaBody: PragmaBody = {
 };
 PragmaValue: PragmaValue = {
     SignedNumber,
-    <"StringLiteral"> => <>.to_string(),
+    "StringLiteral" => <>.to_string(),
     Name,
     "on" => "on".to_string(),
     "delete" => "delete".to_string(),
@@ -701,7 +699,7 @@ TriggerCmd: TriggerCmd = {
     "delete" "from" <tbl_name:TableName> <where_clause:Where?> => TriggerCmd::Delete {
         tbl_name: tbl_name, where_clause: where_clause
     },
-    <Select> => TriggerCmd::Select(<>),
+    Select => TriggerCmd::Select(<>),
 };
 
 //////////////////////// DROP TRIGGER statement //////////////////////////////

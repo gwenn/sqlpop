@@ -134,7 +134,7 @@ fn test_table_constraints() {
         .expect("FK constaint with no column reference supported");
     parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id) DEFERRABLE \
                INITIALLY DEFERRED)")
-        .expect("FK constraint with defer clause supported");
+            .expect("FK constraint with defer clause supported");
 }
 
 #[test]

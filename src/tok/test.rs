@@ -5,9 +5,9 @@ fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {
     let lexer = Tokenizer::new(input, 0);
     let actual_tokens: Vec<Tok> = lexer.into_iter()
         .map(|r| {
-            let (_, t, _) = r.unwrap();
-            t
-        })
+                 let (_, t, _) = r.unwrap();
+                 t
+             })
         .collect();
     assert_eq!(expected_tokens, actual_tokens);
 }

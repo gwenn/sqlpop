@@ -34,10 +34,10 @@ pub enum ErrorCode {
 fn error<T>(c: ErrorCode, l: usize, t: &str) -> Result<T, Error> {
     let line = t[..l].chars().filter(|c| *c == '\n').count() + 1;
     Err(Error {
-        location: l,
-        code: c,
-        line: line,
-    })
+            location: l,
+            code: c,
+            line: line,
+        })
 }
 
 pub struct Tokenizer<'input> {
@@ -791,10 +791,10 @@ impl<'input> Iterator for Tokenizer<'input> {
             Some(Ok((l, t, r))) => Some(Ok((l + self.shift, t, r + self.shift))),
             Some(Err(Error { location, code, line })) => {
                 Some(Err(Error {
-                    location: location + self.shift,
-                    code: code,
-                    line: line,
-                }))
+                             location: location + self.shift,
+                             code: code,
+                             line: line,
+                         }))
             }
         }
     }
