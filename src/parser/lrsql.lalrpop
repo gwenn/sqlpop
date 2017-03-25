@@ -123,10 +123,13 @@ IfNotExists: () =
 ColumnName = Name;
 
 Id: Name = {
-    "Id" => <>.to_string(),
-    "indexed" => "INDEXED".to_string(),
+    "Id" => <>.to_owned(),
+    "indexed" => "INDEXED".to_owned(),
     // TODO fallback
-    "temp" => "TEMP".to_string(),
+    "temp" => "TEMP".to_owned(),
+    // match
+    "key" => "KEY".to_owned(),
+    "row" => "ROW".to_owned(),
 };
 
 IdString: Name = {
@@ -136,13 +139,13 @@ IdString: Name = {
 // nm
 Name: Name = {
     Id,
-    "StringLiteral" => <>.to_string(),
-    "cross" => "CROSS".to_string(),
-    "inner" => "INNER".to_string(),
-    "left" => "LEFT".to_string(),
-    "natural" => "NATURAL".to_string(),
-    "outer" => "OUTER".to_string(),
-    "right" => "RIGHT".to_string(),
+    "StringLiteral" => <>.to_owned(),
+    "cross" => "CROSS".to_owned(),
+    "inner" => "INNER".to_owned(),
+    "left" => "LEFT".to_owned(),
+    "natural" => "NATURAL".to_owned(),
+    "outer" => "OUTER".to_owned(),
+    "right" => "RIGHT".to_owned(),
 };
 
 ConstraintName = Name;
@@ -170,7 +173,7 @@ SignedNumber: String =
     <sign:(Sign)?> <num:NumericLiteral> => {
         match sign {
             Some(sign) => format!("{}{}", sign, num),
-            None => num.to_string(),
+            None => num.to_owned(),
         }
     };
 Sign: &'static str = {
@@ -225,7 +228,7 @@ ResolveType: ResolveType = {
 };
 
 DefaultValue: DefaultValue = {
-    LiteralValue => DefaultValue::Expr(Expr::Literal(<>.to_string())),
+    LiteralValue => DefaultValue::Expr(Expr::Literal(<>.to_owned())),
     "(" <Expr> ")" => DefaultValue::Expr(<>),
     "+" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("+{}", <>))), // Ambiguous grammar with SignedNumber and LiteralValue
     "-" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("-{}", <>))),
@@ -591,13 +594,13 @@ BitNotExpr: Expr = {
 };
 
 OtherExpr: Expr = {
-    LiteralValue => Expr::Literal(<>.to_string()),
+    LiteralValue => Expr::Literal(<>.to_owned()),
     "(" <Expr> ")" => Expr::Parenthesized(Box::new(<>)),
     Id => Expr::Id(<>),
 // TODO JOIN_KW
     <Name> "." <Name> => Expr::Qualified(<>),
     <Name> "." <Name> "." <Name> => Expr::DoublyQualified(<>),
-    "Variable" => Expr::Variable(<>.to_string()),
+    "Variable" => Expr::Variable(<>.to_owned()),
     "cast" "(" <expr:Expr> "as" <type_name:TypeName> ")" => Expr::Cast {
         expr: Box::new(expr),
         type_name: type_name,
@@ -616,7 +619,7 @@ OtherExpr: Expr = {
         else_expr: else_expr.map(|e| Box::new(e)),
     },
     "raise" "(" "ignore" ")" => Expr::Raise(ResolveType::Ignore, None),
-    "raise" "(" <rt:RaiseType> "," <err:"StringLiteral"> ")" => Expr::Raise(rt, Some(err.to_string())), // TODO Name versus StringLiteral
+    "raise" "(" <rt:RaiseType> "," <err:"StringLiteral"> ")" => Expr::Raise(rt, Some(err.to_owned())), // TODO Name versus StringLiteral
 };
 
 LikeOperator: LikeOperator = {
@@ -659,9 +662,12 @@ PragmaBody: PragmaBody = {
 PragmaValue: PragmaValue = {
     SignedNumber,
     Name,
-    "on" => "on".to_string(),
-    "delete" => "delete".to_string(),
-    "default" => "default".to_string(),
+    "on" => "on".to_owned(),
+    "delete" => "delete".to_owned(),
+    "default" => "default".to_owned(),
+    "exclusive" => "exclusive".to_owned(),
+    "full" => "full".to_owned(),
+    "no" => "no".to_owned(),
 };
 
 //////////////////////////// The CREATE TRIGGER command /////////////////////
@@ -703,8 +709,8 @@ TriggerCmd: TriggerCmd = {
     "update" <or_conflict:OrConflict?> <tbl_name:TableName> "set" <sets:CommaList<Set>> <where_clause:Where?> => TriggerCmd::Update {
         or_conflict: or_conflict, tbl_name: tbl_name, sets: sets, where_clause: where_clause
     },
-    "insert" "into" <tbl_name:TableName> <col_names:("(" <CommaList<ColumnName>> ")")?> <select:Select> => TriggerCmd::Insert {
-        tbl_name: tbl_name, col_names: col_names, select: select
+    <or_conflict:InsertCmd> "into" <tbl_name:TableName> <col_names:("(" <CommaList<ColumnName>> ")")?> <select:Select> => TriggerCmd::Insert {
+        or_conflict: or_conflict, tbl_name: tbl_name, col_names: col_names, select: select
     },
     "delete" "from" <tbl_name:TableName> <where_clause:Where?> => TriggerCmd::Delete {
         tbl_name: tbl_name, where_clause: where_clause
@@ -751,9 +757,9 @@ CreateVirtualTable: Stmt =
     };
 
 VirtualTableArg: Expr = {
-    "StringLiteral" => Expr::Literal(<>.to_string()),
-    "Id" => Expr::Id(<>.to_string()),
-    NumericLiteral => Expr::NumericLiteral(<>.to_string()),
+    "StringLiteral" => Expr::Literal(<>.to_owned()),
+    "Id" => Expr::Id(<>.to_owned()),
+    NumericLiteral => Expr::NumericLiteral(<>.to_owned()),
     // TODO ANY
 };
 

@@ -550,6 +550,7 @@ pub enum TriggerCmd {
         where_clause: Option<Expr>,
     },
     Insert {
+        or_conflict: Option<ResolveType>,
         tbl_name: Name,
         col_names: Option<Vec<Name>>,
         select: Select,
