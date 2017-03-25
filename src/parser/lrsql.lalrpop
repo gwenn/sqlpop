@@ -127,8 +127,8 @@ Id: Name = {
     "indexed" => "INDEXED".to_owned(),
     // TODO fallback
     "temp" => "TEMP".to_owned(),
-    // match
-    "key" => "KEY".to_owned(),
+//    "key" => "KEY".to_owned(),
+//    "match" => "KEY".to_owned(),
     "row" => "ROW".to_owned(),
 };
 
