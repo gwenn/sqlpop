@@ -1,7 +1,6 @@
 use tok::{self, Tok};
 use ast::*;
 
-#[LALR]
 #[recursive_ascent]
 grammar<'input>(text: &'input str);
 

@@ -1,6 +1,9 @@
 extern crate lalrpop;
 
+use std::env;
+
 fn main() {
+    env::set_var("LALRPOP_LANE_TABLE", "enabled");
     lalrpop::Configuration::new()
         .emit_comments(false)
         .log_verbose()
