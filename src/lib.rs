@@ -1,3 +1,5 @@
+#![allow(unreachable_patterns)]
+
 extern crate lalrpop_util;
 
 pub mod ast;
