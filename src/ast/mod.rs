@@ -219,8 +219,6 @@ pub enum Operator {
     LeftShift,
     Less,
     LessEquals,
-    LogicalAnd,
-    LogicalOr,
     Multiply,
     Modulus,
     NotEquals, // != or <>
