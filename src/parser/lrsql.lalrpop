@@ -111,7 +111,7 @@ CreateTable: Stmt =
     };
 CreateTableBody: CreateTableBody = {
     "(" <columns:CommaList<ColumnDef>> <constraints:("," <CommaList<NamedTableConstraint>>)?> ")" <without:("without" <Name>)?> => CreateTableBody::ColumnsAndConstraints {
-        columns: columns, constraints: constraints, without: without
+        columns: columns, constraints: constraints, without: without.is_some()
     }, // TODO check Name == "rowid"*
     "as" <Select> => CreateTableBody::AsSelect(<>),
 };

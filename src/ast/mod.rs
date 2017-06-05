@@ -367,7 +367,7 @@ pub enum CreateTableBody {
     ColumnsAndConstraints {
         columns: Vec<ColumnDefinition>,
         constraints: Option<Vec<NamedTableConstraint>>,
-        without: Option<Name>,
+        without: bool,
     },
     AsSelect(Select),
 }
