@@ -323,7 +323,10 @@ pub enum SelectTable {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum JoinOperator {
     Comma,
-    TypedJoin { natural: bool, join_type: Option<JoinType> },
+    TypedJoin {
+        natural: bool,
+        join_type: Option<JoinType>,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

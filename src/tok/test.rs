@@ -3,11 +3,12 @@ use super::{Error, ErrorCode, Tokenizer, Tok};
 
 fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {
     let lexer = Tokenizer::new(input, 0);
-    let actual_tokens: Vec<Tok> = lexer.into_iter()
+    let actual_tokens: Vec<Tok> = lexer
+        .into_iter()
         .map(|r| {
-                 let (_, t, _) = r.unwrap();
-                 t
-             })
+            let (_, t, _) = r.unwrap();
+            t
+        })
         .collect();
     assert_eq!(expected_tokens, actual_tokens);
 }
@@ -33,41 +34,47 @@ fn assert_error(expected_tokens: Vec<Result<Tok, Error>>, input: &str) {
 
 #[test]
 fn test_insert() {
-    let expected_tokens = vec![Tok::Insert,
-                               Tok::Into,
-                               Tok::Id("t3"),
-                               Tok::Values,
-                               Tok::LeftParen,
-                               Tok::StringLiteral("r c"),
-                               Tok::Comma,
-                               Tok::StringLiteral(""),
-                               Tok::RightParen,
-                               Tok::Semi];
+    let expected_tokens = vec![
+        Tok::Insert,
+        Tok::Into,
+        Tok::Id("t3"),
+        Tok::Values,
+        Tok::LeftParen,
+        Tok::StringLiteral("r c"),
+        Tok::Comma,
+        Tok::StringLiteral(""),
+        Tok::RightParen,
+        Tok::Semi,
+    ];
     assert_tokens(expected_tokens, "INSERT INTO t3 VALUES( 'r c', '');");
-    let expected_tokens = vec![Tok::Insert,
-                               Tok::Into,
-                               Tok::Id("email"),
-                               Tok::LeftParen,
-                               Tok::Id("from"),
-                               Tok::Comma,
-                               Tok::Id("to"),
-                               Tok::Comma,
-                               Tok::Id("subject"),
-                               Tok::Comma,
-                               Tok::Id("body"),
-                               Tok::RightParen,
-                               Tok::Values,
-                               Tok::LeftParen,
-                               Tok::StringLiteral("..."),
-                               Tok::Comma,
-                               Tok::StringLiteral("..."),
-                               Tok::Comma,
-                               Tok::StringLiteral("..."),
-                               Tok::Comma,
-                               Tok::StringLiteral("..."),
-                               Tok::RightParen];
-    assert_tokens(expected_tokens,
-                  "INSERT INTO email([from],[to],subject,body) VALUES('...', '...', '...', '...')");
+    let expected_tokens = vec![
+        Tok::Insert,
+        Tok::Into,
+        Tok::Id("email"),
+        Tok::LeftParen,
+        Tok::Id("from"),
+        Tok::Comma,
+        Tok::Id("to"),
+        Tok::Comma,
+        Tok::Id("subject"),
+        Tok::Comma,
+        Tok::Id("body"),
+        Tok::RightParen,
+        Tok::Values,
+        Tok::LeftParen,
+        Tok::StringLiteral("..."),
+        Tok::Comma,
+        Tok::StringLiteral("..."),
+        Tok::Comma,
+        Tok::StringLiteral("..."),
+        Tok::Comma,
+        Tok::StringLiteral("..."),
+        Tok::RightParen,
+    ];
+    assert_tokens(
+        expected_tokens,
+        "INSERT INTO email([from],[to],subject,body) VALUES('...', '...', '...', '...')",
+    );
 }
 
 #[test]
@@ -82,7 +89,13 @@ fn test_comment() {
 fn test_minus() {
     let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Minus, Tok::Id("b")];
     assert_tokens(expected_tokens, "SELECT a-b");
-    let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Minus, Tok::Minus, Tok::Id("b")];
+    let expected_tokens = vec![
+        Tok::Select,
+        Tok::Id("a"),
+        Tok::Minus,
+        Tok::Minus,
+        Tok::Id("b"),
+    ];
     assert_tokens(expected_tokens, "SELECT a - -b");
 }
 
@@ -90,7 +103,13 @@ fn test_minus() {
 fn test_plus() {
     let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Plus, Tok::Id("b")];
     assert_tokens(expected_tokens, "SELECT a+b");
-    let expected_tokens = vec![Tok::Select, Tok::Id("a"), Tok::Plus, Tok::Plus, Tok::Id("b")];
+    let expected_tokens = vec![
+        Tok::Select,
+        Tok::Id("a"),
+        Tok::Plus,
+        Tok::Plus,
+        Tok::Id("b"),
+    ];
     assert_tokens(expected_tokens, "SELECT a + +b");
 }
 
@@ -158,10 +177,12 @@ fn test_exclamation_mark() {
 
 #[test]
 fn test_exclamation_mark_alone() {
-    let expected_tokens = vec![Ok(Tok::Select),
-                               Ok(Tok::Id("a")),
-                               super::error(ErrorCode::ExpectedEqualsSign, 0, ""),
-                               Ok(Tok::Id("b"))];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        Ok(Tok::Id("a")),
+        super::error(ErrorCode::ExpectedEqualsSign, 0, ""),
+        Ok(Tok::Id("b")),
+    ];
     assert_error(expected_tokens, "SELECT a!b");
 }
 
@@ -213,17 +234,25 @@ fn test_literal() {
     let expected_tokens = vec![Tok::Select, Tok::StringLiteral("''hel''lo''")];
     assert_tokens(expected_tokens, "SELECT '''hel''lo'''");
 
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedLiteral, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT '");
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedLiteral, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT '''");
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedLiteral, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT 'hel''");
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedLiteral, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedLiteral, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT 'hel''lo''");
 }
 
@@ -299,12 +328,16 @@ fn test_hex_integer() {
     let expected_tokens = vec![Tok::Select, Tok::Integer("0Xff")];
     assert_tokens(expected_tokens, "SELECT 0Xff");
 
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::MalformedHexInteger, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::MalformedHexInteger, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT 0Xfg");
 
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::MalformedHexInteger, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::MalformedHexInteger, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT 0Xg");
 }
 
@@ -315,11 +348,15 @@ fn test_bracket() {
     let expected_tokens = vec![Tok::Select, Tok::Id("")];
     assert_tokens(expected_tokens, "SELECT []");
 
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedBracket, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedBracket, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT [");
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::UnterminatedBracket, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::UnterminatedBracket, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT [abc");
 }
 
@@ -338,7 +375,10 @@ fn test_dollar() {
     let expected_tokens = vec![Tok::Select, Tok::Variable("$a")];
     assert_tokens(expected_tokens, "SELECT $a");
 
-    let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::BadVariableName, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT $");
 }
 
@@ -347,7 +387,10 @@ fn test_at() {
     let expected_tokens = vec![Tok::Select, Tok::Variable("@a")];
     assert_tokens(expected_tokens, "SELECT @a");
 
-    let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::BadVariableName, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT @");
 }
 
@@ -356,7 +399,10 @@ fn test_hash() {
     let expected_tokens = vec![Tok::Select, Tok::Variable("#a")];
     assert_tokens(expected_tokens, "SELECT #a");
 
-    let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::BadVariableName, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT #");
 }
 
@@ -365,11 +411,17 @@ fn test_colon() {
     let expected_tokens = vec![Tok::Select, Tok::Variable(":a")];
     assert_tokens(expected_tokens, "SELECT :a");
 
-    let expected_tokens = vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::BadVariableName, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT :");
 
-    let expected_tokens =
-        vec![Ok(Tok::Select), super::error(ErrorCode::BadVariableName, 0, ""), Ok(Tok::Comma)];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::BadVariableName, 0, ""),
+        Ok(Tok::Comma),
+    ];
     assert_error(expected_tokens, "SELECT :,");
 }
 
@@ -383,16 +435,24 @@ fn test_blob_literal() {
     let expected_tokens = vec![Tok::Select, Tok::Blob("abcde123")];
     assert_tokens(expected_tokens, "SELECT X'abcde123'");
 
-    let expected_tokens =
-        vec![Ok(Tok::Select), super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::MalformedBlobLiteral, 0, ""),
+        Ok(Tok::Comma),
+    ];
     assert_error(expected_tokens, "SELECT x'adcef',");
 
-    let expected_tokens =
-        vec![Ok(Tok::Select), super::error(ErrorCode::MalformedBlobLiteral, 0, ""), Ok(Tok::Comma)];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::MalformedBlobLiteral, 0, ""),
+        Ok(Tok::Comma),
+    ];
     assert_error(expected_tokens, "SELECT x'adcefg',");
 
-    let expected_tokens = vec![Ok(Tok::Select),
-                               super::error(ErrorCode::MalformedBlobLiteral, 0, "")];
+    let expected_tokens = vec![
+        Ok(Tok::Select),
+        super::error(ErrorCode::MalformedBlobLiteral, 0, ""),
+    ];
     assert_error(expected_tokens, "SELECT x'adcef");
 }
 
