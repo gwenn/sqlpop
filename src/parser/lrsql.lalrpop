@@ -514,10 +514,14 @@ Update: Stmt =
     };
 OrConflict: ResolveType =
     "or" <ResolveType>;
-Set: Set =
+Set: Set = {
     <col_name:ColumnName> "=" <expr:Expr> => Set {
-        col_name: col_name, expr: expr
-    };
+        col_names: vec![col_name], expr: expr
+    },
+    "(" <col_names:CommaList<ColumnName>> "=" <expr:Expr> => Set {
+        col_names: col_names, expr: expr
+    },
+};
 
 ////////////////////////// The INSERT command /////////////////////////////////
 Insert: Stmt =

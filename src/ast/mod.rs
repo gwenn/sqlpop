@@ -511,7 +511,7 @@ pub enum InsertBody {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Set {
-    pub col_name: Name,
+    pub col_names: Vec<Name>,
     pub expr: Expr,
 }
 
