@@ -34,10 +34,10 @@ pub enum ErrorCode {
 fn error<T>(c: ErrorCode, l: usize, t: &str) -> Result<T, Error> {
     let line = t[..l].chars().filter(|c| *c == '\n').count() + 1;
     Err(Error {
-            location: l,
-            code: c,
-            line: line,
-        })
+        location: l,
+        code: c,
+        line: line,
+    })
 }
 
 pub struct Tokenizer<'input> {
@@ -676,7 +676,8 @@ impl<'input> Tokenizer<'input> {
     fn identifierish(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
         let (start, word, end) = self.word(idx0);
         // search for a keyword first; if none are found, this is an Id
-        let tok = KEYWORDS.iter()
+        let tok = KEYWORDS
+            .iter()
             .filter(|&&(w, _)| w.eq_ignore_ascii_case(word))
             .map(|&(_, ref t)| t.clone())
             .next()
@@ -722,7 +723,8 @@ impl<'input> Tokenizer<'input> {
 
     // Returns `(false, _)` when `keep_going` does not succeed at least once.
     fn take_while_1<F>(&mut self, mut keep_going: F) -> (bool, Option<(usize, char)>)
-        where F: FnMut(char) -> bool
+    where
+        F: FnMut(char) -> bool,
     {
         let mut succeed = false;
         loop {
@@ -744,7 +746,8 @@ impl<'input> Tokenizer<'input> {
 
 
     fn take_while<F>(&mut self, mut keep_going: F) -> Option<(usize, char)>
-        where F: FnMut(char) -> bool
+    where
+        F: FnMut(char) -> bool,
     {
         loop {
             match self.lookahead {
@@ -763,7 +766,8 @@ impl<'input> Tokenizer<'input> {
     }
 
     fn take_until<F>(&mut self, mut terminate: F) -> Option<usize>
-        where F: FnMut(char) -> bool
+    where
+        F: FnMut(char) -> bool,
     {
         loop {
             match self.lookahead {
@@ -789,12 +793,16 @@ impl<'input> Iterator for Tokenizer<'input> {
         match self.next_unshifted() {
             None => None,
             Some(Ok((l, t, r))) => Some(Ok((l + self.shift, t, r + self.shift))),
-            Some(Err(Error { location, code, line })) => {
+            Some(Err(Error {
+                         location,
+                         code,
+                         line,
+                     })) => {
                 Some(Err(Error {
-                             location: location + self.shift,
-                             code: code,
-                             line: line,
-                         }))
+                    location: location + self.shift,
+                    code: code,
+                    line: line,
+                }))
             }
         }
     }
@@ -806,5 +814,5 @@ fn is_identifier_start(c: char) -> bool {
 
 fn is_identifier_continue(c: char) -> bool {
     c == '$' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' ||
-    (c >= 'a' && c <= 'z') || c > '\x7F'
+        (c >= 'a' && c <= 'z') || c > '\x7F'
 }
