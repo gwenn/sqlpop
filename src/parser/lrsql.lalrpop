@@ -288,6 +288,7 @@ DefaultValue: DefaultValue = {
 };
 
 RefArg: RefArg = {
+    "on" "insert" <RefAct> => RefArg::OnInsert(<>),
     "on" "delete" <RefAct> => RefArg::OnDelete(<>),
     "on" "update" <RefAct> => RefArg::OnUpdate(<>),
     "match" <Name> => RefArg::Match(<>),

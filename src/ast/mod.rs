@@ -129,17 +129,18 @@ pub enum Expr {
         start: Box<Expr>,
         end: Box<Expr>,
     },
+    Binary(Box<Expr>, Operator, Box<Expr>),
     // CASE expression
     Case {
         base: Option<Box<Expr>>,
         when_then_pairs: Vec<(Box<Expr>, Box<Expr>)>,
         else_expr: Option<Box<Expr>>,
     },
-    Binary(Box<Expr>, Operator, Box<Expr>),
     // CAST expression
     Cast { expr: Box<Expr>, type_name: Type },
     // COLLATE expression
     Collate(Box<Expr>, Name),
+    // schema-name.table-name.column-name
     DoublyQualified(Name, Name, Name),
     // EXISTS subquery
     Exists(Box<Select>),
@@ -166,7 +167,7 @@ pub enum Expr {
     InTable {
         lhs: Box<Expr>,
         not: bool,
-        rhs: QualifiedName,
+        rhs: QualifiedName, // FIXME Vec<Expr> args
     },
     Isnull(Box<Expr>),
     Like {
@@ -177,13 +178,13 @@ pub enum Expr {
         escape: Option<Box<Expr>>,
     },
     // Literal string expression
-    Literal(String),
+    Literal(String), // FXIME distinction between String literal and BLOB...
     // "NOT NULL" or "NOTNULL"
     NotNull(Box<Expr>),
     // Literal numeric expression
     NumericLiteral(String),
     // Parenthesized subexpression
-    Parenthesized(Box<Expr>),
+    Parenthesized(Box<Expr>), // FIXME Vec<Expr>
     Qualified(Name, Name),
     // RAISE function call
     Raise(ResolveType, Option<String>),
@@ -382,6 +383,8 @@ pub struct ColumnDefinition {
     pub constraints: Vec<NamedColumnConstraint>,
 }
 
+// TODO ColumnNameAndType
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NamedColumnConstraint {
     pub name: Option<Name>,
@@ -455,6 +458,7 @@ pub struct ForeignKeyClause {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RefArg {
     OnDelete(RefAct),
+    OnInsert(RefAct),
     OnUpdate(RefAct),
     Match(Name),
 }
@@ -477,7 +481,7 @@ pub struct DeferSubclause {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum InitDeferredPred {
     InitiallyDeferred,
-    InitiallyImmediate,
+    InitiallyImmediate, // default
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -528,7 +532,7 @@ pub type PragmaValue = String; // TODO
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TriggerTime {
-    Before,
+    Before, // default
     After,
     InsteadOf,
 }
@@ -566,7 +570,7 @@ pub enum TriggerCmd {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ResolveType {
     Rollback,
-    Abort,
+    Abort, // default
     Fail,
     Ignore,
     Replace,
@@ -599,7 +603,7 @@ pub enum TypeSize {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TransactionType {
-    Deferred,
+    Deferred, // default
     Immediate,
     Exclusive,
 }
