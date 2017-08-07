@@ -280,10 +280,10 @@ ResolveType: ResolveType = {
 };
 
 DefaultValue: DefaultValue = {
-    LiteralValue => DefaultValue::Expr(Expr::Literal(<>.to_owned())),
+    LiteralValue => DefaultValue::Expr(Expr::Literal(<>)),
     "(" <Expr> ")" => DefaultValue::Expr(<>),
-    "+" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("+{}", <>))), // Ambiguous grammar with SignedNumber and LiteralValue
-    "-" <NumericLiteral> => DefaultValue::Expr(Expr::NumericLiteral(format!("-{}", <>))),
+    "+" <NumericLiteral> => DefaultValue::Expr(Expr::Literal(Literal::Numeric(format!("+{}", <>)))), // Ambiguous grammar with SignedNumber and LiteralValue
+    "-" <NumericLiteral> => DefaultValue::Expr(Expr::Literal(Literal::Numeric(format!("-{}", <>)))),
     Id => DefaultValue::Expr(Expr::Id(<>)),
 };
 
@@ -302,14 +302,14 @@ RefAct: RefAct = {
 };
 
 // term
-LiteralValue: &'input str = {
-    NumericLiteral,
-    "StringLiteral",
-    "Blob",
-    "null" => "NULL",
-    "current_date" => "CURRENT_DATE",
-    "current_time" => "CURRENT_TIME",
-    "current_timestamp" => "CURRENT_TIMESTAMP",
+LiteralValue: Literal = {
+    NumericLiteral => Literal::Numeric(<>.to_owned()),
+    "StringLiteral" => Literal::String(<>.to_owned()),
+    "Blob" => Literal::Blob(<>.to_owned()),
+    "null" => Literal::Null,
+    "current_date" => Literal::CurrentDate,
+    "current_time" => Literal::CurrentTime,
+    "current_timestamp" => Literal::CurrentTimestamp,
 };
 
 SortOrder: SortOrder = {
@@ -595,10 +595,11 @@ EqExpr: Expr = {
         not: not.is_some(),
         rhs: Box::new(rhs),
     },
-    <lhs:EqExpr> <not:"not"?> "in" <rhs:QualifiedTableName> => Expr::InTable {
+    <lhs:EqExpr> <not:"not"?> "in" <rhs:QualifiedTableName> <args:("(" <CommaList<Expr>> ")")?> => Expr::InTable {
         lhs: Box::new(lhs),
         not: not.is_some(),
         rhs: rhs,
+        args: args.map(|v| v.into_iter().map(|e| Box::new(e)).collect()),
     },
     CompExpr,
 };
@@ -651,8 +652,8 @@ BitNotExpr: Expr = {
 };
 
 OtherExpr: Expr = {
-    LiteralValue => Expr::Literal(<>.to_owned()),
-    "(" <Expr> ")" => Expr::Parenthesized(Box::new(<>)),
+    LiteralValue => Expr::Literal(<>),
+    "(" <CommaList<Expr>> ")" => Expr::Parenthesized(<>.into_iter().map(|e| Box::new(e)).collect()),
     Id => Expr::Id(<>),
 // TODO JOIN_KW
     <Name> "." <Name> => Expr::Qualified(<>),
@@ -812,9 +813,9 @@ CreateVirtualTable: Stmt =
     };
 
 VirtualTableArg: Expr = {
-    "StringLiteral" => Expr::Literal(<>.to_owned()),
+    "StringLiteral" => Expr::Literal(Literal::String(<>.to_owned())),
     "Id" => Expr::Id(<>.to_owned()),
-    NumericLiteral => Expr::NumericLiteral(<>.to_owned()),
+    NumericLiteral => Expr::Literal(Literal::Numeric(<>.to_owned())),
     // TODO ANY
 };
 

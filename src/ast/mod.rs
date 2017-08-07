@@ -120,7 +120,6 @@ pub enum Stmt {
     Vacuum(Option<Name>),
 }
 
-// TODO
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Expr {
     Between {
@@ -167,7 +166,8 @@ pub enum Expr {
     InTable {
         lhs: Box<Expr>,
         not: bool,
-        rhs: QualifiedName, // FIXME Vec<Expr> args
+        rhs: QualifiedName,
+        args: Option<Vec<Box<Expr>>>,
     },
     Isnull(Box<Expr>),
     Like {
@@ -177,14 +177,12 @@ pub enum Expr {
         rhs: Box<Expr>,
         escape: Option<Box<Expr>>,
     },
-    // Literal string expression
-    Literal(String), // FXIME distinction between String literal and BLOB...
+    // Literal expression
+    Literal(Literal),
     // "NOT NULL" or "NOTNULL"
     NotNull(Box<Expr>),
-    // Literal numeric expression
-    NumericLiteral(String),
     // Parenthesized subexpression
-    Parenthesized(Box<Expr>), // FIXME Vec<Expr>
+    Parenthesized(Vec<Box<Expr>>),
     Qualified(Name, Name),
     // RAISE function call
     Raise(ResolveType, Option<String>),
@@ -194,6 +192,17 @@ pub enum Expr {
     Unary(UnaryOperator, Box<Expr>),
     // Parameters
     Variable(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Literal {
+    Numeric(String),
+    String(String),
+    Blob(String),
+    Null,
+    CurrentTime,
+    CurrentDate,
+    CurrentTimestamp,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
