@@ -18,7 +18,7 @@ fn test_begin() {
     assert!(
         parse_sql("BEGIN tx").is_err(),
         "error expected when transaction name is specified without `TRANSACTION` keyword \
-             preceding"
+         preceding"
     );
 }
 
@@ -39,7 +39,7 @@ fn test_commit() {
     assert!(
         parse_sql("COMMIT tx").is_err(),
         "error expected when transaction name is specified without `TRANSACTION` keyword \
-             preceding"
+         preceding"
     );
 }
 
@@ -57,7 +57,7 @@ fn test_rollback() {
     assert!(
         parse_sql("ROLLBACK tx").is_err(),
         "error expected when transaction name is specified without `TRANSACTION` keyword \
-             preceding"
+         preceding"
     );
 }
 
@@ -162,7 +162,7 @@ fn test_table_constraints() {
     ).expect("FK constaint with no column reference supported");
     parse_sql(
         "CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id) DEFERRABLE \
-               INITIALLY DEFERRED)",
+         INITIALLY DEFERRED)",
     ).expect("FK constraint with defer clause supported");
 }
 
@@ -367,9 +367,8 @@ fn test_create_trigger() {
         "error expected when no table name is specified"
     );
     assert!(
-        parse_sql(
-            "CREATE TRIGGER trgr UPDATE test ON BEGIN SELECT 1 FROM main.test; END",
-        ).is_err(),
+        parse_sql("CREATE TRIGGER trgr UPDATE test ON BEGIN SELECT 1 FROM main.test; END",)
+            .is_err(),
         "error expected when qualified table name is specified"
     );
 }

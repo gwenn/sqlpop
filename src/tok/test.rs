@@ -1,5 +1,5 @@
 
-use super::{Error, ErrorCode, Tokenizer, Tok};
+use super::{Error, ErrorCode, Tok, Tokenizer};
 
 fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {
     let lexer = Tokenizer::new(input, 0);
@@ -22,7 +22,15 @@ fn assert_error(expected_tokens: Vec<Result<Tok, Error>>, input: &str) {
             (Ok((_, actual_token, _)), Ok(expected_token)) => {
                 assert_eq!(expected_token, actual_token);
             }
-            (Err(Error { code: actual_code, .. }), Err(Error { code: expected_code, .. })) => {
+            (
+                Err(Error {
+                    code: actual_code, ..
+                }),
+                Err(Error {
+                    code: expected_code,
+                    ..
+                }),
+            ) => {
                 assert_eq!(expected_code, actual_code);
             }
             (actual, expected) => panic!("expected: {:?}, got: {:?}", expected, actual),
