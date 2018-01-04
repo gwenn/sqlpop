@@ -3,7 +3,6 @@
 //! and [SQLite tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
 
 use std::str::CharIndices;
-use std::ascii::AsciiExt;
 
 use self::ErrorCode::*;
 use self::Tok::*;
