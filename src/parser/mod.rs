@@ -14,8 +14,9 @@ mod test;
 pub type ParseError<'input> = lalrpop_util::ParseError<usize, tok::Tok<'input>, tok::Error>;
 
 pub fn parse_sql<'input>(input: &'input str) -> Result<Vec<Option<Cmd>>, ParseError<'input>> {
+    use self::lrsql::CmdListParser;
     let tokenizer = tok::Tokenizer::new(input, 0);
-    let sql = try!(lrsql::parse_CmdList(input, tokenizer));
+    let sql = try!(CmdListParser::new().parse(input, tokenizer));
 
     Ok(sql)
 }
