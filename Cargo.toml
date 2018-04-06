@@ -12,7 +12,7 @@ license = "Apache-2.0/MIT"
 build = "build.rs" # LALRPOP preprocessing
 
 [dependencies]
-lalrpop-util = "0.14"
+lalrpop-util = "0.15"
 
 [build-dependencies]
-lalrpop = "0.14"
+lalrpop = "0.15"
