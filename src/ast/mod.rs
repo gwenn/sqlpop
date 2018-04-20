@@ -96,7 +96,9 @@ pub enum Stmt {
     },
     // pragma name, body
     Pragma(QualifiedName, Option<PragmaBody>),
-    Reindex { obj_name: Option<QualifiedName> },
+    Reindex {
+        obj_name: Option<QualifiedName>,
+    },
     // savepoint name
     Release(Name), // TODO distinction between RELEASE and RELEASE SAVEPOINT
     Rollback {
@@ -136,7 +138,10 @@ pub enum Expr {
         else_expr: Option<Box<Expr>>,
     },
     // CAST expression
-    Cast { expr: Box<Expr>, type_name: Type },
+    Cast {
+        expr: Box<Expr>,
+        type_name: Type,
+    },
     // COLLATE expression
     Collate(Box<Expr>, Name),
     // schema-name.table-name.column-name
@@ -414,7 +419,9 @@ pub enum ColumnConstraint {
     Unique(Option<ResolveType>),
     Check(Expr),
     Default(DefaultValue),
-    Collate { collation_name: String },
+    Collate {
+        collation_name: String,
+    },
     ForeignKey {
         clause: ForeignKeyClause,
         deref_clause: Option<DeferSubclause>,
