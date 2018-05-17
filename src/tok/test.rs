@@ -1,4 +1,3 @@
-
 use super::{Error, ErrorCode, Tok, Tokenizer};
 
 fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {

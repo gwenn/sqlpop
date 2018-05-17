@@ -713,7 +713,6 @@ impl<'input> Tokenizer<'input> {
         }
     }
 
-
     fn take_while<F>(&mut self, mut keep_going: F) -> Option<(usize, char)>
     where
         F: FnMut(char) -> bool,
@@ -758,13 +757,11 @@ impl<'input> Iterator for Tokenizer<'input> {
         match self.next_unshifted() {
             None => None,
             Some(Ok((l, t, r))) => Some(Ok((l + self.shift, t, r + self.shift))),
-            Some(
-                Err(Error {
-                    location,
-                    code,
-                    line,
-                }),
-            ) => Some(Err(Error {
+            Some(Err(Error {
+                location,
+                code,
+                line,
+            })) => Some(Err(Error {
                 location: location + self.shift,
                 code: code,
                 line: line,
@@ -778,6 +775,10 @@ fn is_identifier_start(c: char) -> bool {
 }
 
 fn is_identifier_continue(c: char) -> bool {
-    c == '$' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || c == '_' ||
-        (c >= 'a' && c <= 'z') || c > '\x7F'
+    c == '$'
+        || (c >= '0' && c <= '9')
+        || (c >= 'A' && c <= 'Z')
+        || c == '_'
+        || (c >= 'a' && c <= 'z')
+        || c > '\x7F'
 }
