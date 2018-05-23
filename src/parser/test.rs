@@ -93,9 +93,7 @@ fn test_release() {
 fn test_create_table() {
     parse_sql("CREATE TABLE test (col)").unwrap();
     parse_sql("CREATE TABLE main.test (col)").unwrap();
-    parse_sql(
-        "CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)",
-    ).unwrap();
+    parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)").unwrap();
 
     parse_sql("CREATE TABLE test (id INTERGER NOT NULL, PRIMARY KEY (id))").unwrap();
     parse_sql("CREATE TABLE test AS SELECT 1").unwrap();
@@ -135,17 +133,13 @@ fn test_column_definition() {
 fn test_column_constraints() {
     parse_sql("CREATE TABLE test (id CONSTRAINT not_null NOT NULL)").unwrap();
     parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY AUTOINCREMENT)").unwrap();
-    parse_sql(
-        "CREATE TABLE test (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)",
-    ).unwrap();
+    parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)").unwrap();
     parse_sql("CREATE TABLE test (id UNIQUE)").unwrap();
     parse_sql("CREATE TABLE test (id CHECK (id > 0))").unwrap();
     parse_sql("CREATE TABLE test (id DEFAULT '')").unwrap();
     parse_sql("CREATE TABLE test (id COLLATE NOCASE)").unwrap();
     parse_sql("CREATE TABLE test (id REFERENCES fktable(id))").unwrap();
-    parse_sql(
-        "CREATE TABLE test (id REFERENCES fktable(id) ON DELETE CASCADE)",
-    ).unwrap();
+    parse_sql("CREATE TABLE test (id REFERENCES fktable(id) ON DELETE CASCADE)").unwrap();
 }
 
 #[test]
@@ -154,12 +148,10 @@ fn test_table_constraints() {
         .expect("PK constraint supported");
     parse_sql("CREATE TABLE test (id, UNIQUE (id))").expect("UNIQUE constraint supported");
     parse_sql("CREATE TABLE test (id, CHECK (id > 0))").expect("CHECK constraint supported");
-    parse_sql(
-        "CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id))",
-    ).expect("FK constaint with one column reference supported");
-    parse_sql(
-        "CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable)",
-    ).expect("FK constaint with no column reference supported");
+    parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id))")
+        .expect("FK constaint with one column reference supported");
+    parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable)")
+        .expect("FK constaint with no column reference supported");
     parse_sql(
         "CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id) DEFERRABLE \
          INITIALLY DEFERRED)",
@@ -349,14 +341,10 @@ fn test_pragma() {
 #[test]
 fn test_create_trigger() {
     parse_sql("CREATE TRIGGER trgr UPDATE ON test BEGIN SELECT 1; END").unwrap();
-    parse_sql(
-        "CREATE TRIGGER main.trgr BEFORE UPDATE ON test BEGIN SELECT 1; END",
-    ).unwrap();
+    parse_sql("CREATE TRIGGER main.trgr BEFORE UPDATE ON test BEGIN SELECT 1; END").unwrap();
 
     // FIXME parse_sql("CREATE TRIGGER trgr BEFORE UPDATE ON test BEGIN SELECT RAISE(ABORT, '...') WHERE NEW.name <> OLD.name; END").unwrap();
-    parse_sql(
-        "CREATE TRIGGER IF NOT EXISTS trgr UPDATE ON test BEGIN SELECT 1; END",
-    ).unwrap();
+    parse_sql("CREATE TRIGGER IF NOT EXISTS trgr UPDATE ON test BEGIN SELECT 1; END").unwrap();
 
     assert!(
         parse_sql("CREATE TRIGGER UPDATE ON test BEGIN SELECT 1; END").is_err(),

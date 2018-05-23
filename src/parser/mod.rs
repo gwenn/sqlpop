@@ -1,9 +1,9 @@
 //! A SQL parser.
 //! Adapted from [SQLite parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/parse.y)
 
+use ast::Cmd;
 use lalrpop_util;
 use tok;
-use ast::Cmd;
 
 #[allow(dead_code)]
 mod lrsql;
