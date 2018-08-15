@@ -5,4 +5,4 @@ rust:
 cache: cargo
 script:
 #  - cargo build --verbose
-  - cargo test --verbose
+  - travis_wait cargo test --verbose
