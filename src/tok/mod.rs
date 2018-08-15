@@ -471,7 +471,7 @@ impl<'input> Tokenizer<'input> {
                     self.bump();
                     let num = match self.take_while_1(|c| c.is_digit(10)) {
                         (false, _) => (idx0, Variable(""), idx0 + 1),
-                        (true, Some((end, _))) => (idx0, Variable(&self.text[idx0..end]), end), // '?' is included as part of the name
+                        (true, Some((end, _))) => (idx0, Variable(&self.text[idx0..end]), end), /* '?' is included as part of the name */
                         (true, None) => (idx0, Variable(&self.text[idx0..]), self.text.len()),
                     };
                     Some(Ok(num))

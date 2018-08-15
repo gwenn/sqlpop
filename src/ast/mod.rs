@@ -523,7 +523,8 @@ pub struct SortedColumn {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Limit {
     pub expr: Expr,
-    pub offset: Option<Expr>, // TODO distinction between LIMIT offset, count and LIMIT count OFFSET offset
+    pub offset: Option<Expr>, /* TODO distinction between LIMIT offset, count and LIMIT count
+                               * OFFSET offset */
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
