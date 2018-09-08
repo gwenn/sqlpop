@@ -6,7 +6,7 @@ use lalrpop_util;
 use tok;
 
 #[allow(dead_code)]
-mod lrsql;
+lalrpop_mod!(lrsql, "/parser/lrsql.rs");
 
 #[cfg(test)]
 mod test;
