@@ -7,7 +7,8 @@ fn assert_tokens(expected_tokens: Vec<Tok>, input: &str) {
         .map(|r| {
             let (_, t, _) = r.unwrap();
             t
-        }).collect();
+        })
+        .collect();
     assert_eq!(expected_tokens, actual_tokens);
 }
 

@@ -486,14 +486,16 @@ impl<'input> Tokenizer<'input> {
                         Some(Ok((start, Variable(name), end)))
                     }
                 }
-                Some((idx0, c)) if is_identifier_start(c) => if c == 'x' || c == 'X' {
-                    match self.bump() {
-                        Some((idx1, '\'')) => Some(self.blob_literal(idx1)),
-                        _ => Some(self.identifierish(idx0)),
+                Some((idx0, c)) if is_identifier_start(c) => {
+                    if c == 'x' || c == 'X' {
+                        match self.bump() {
+                            Some((idx1, '\'')) => Some(self.blob_literal(idx1)),
+                            _ => Some(self.identifierish(idx0)),
+                        }
+                    } else {
+                        Some(self.identifierish(idx0))
                     }
-                } else {
-                    Some(self.identifierish(idx0))
-                },
+                }
                 Some((idx, _)) => {
                     self.bump();
                     Some(error(UnrecognizedToken, idx, self.text))
@@ -567,14 +569,16 @@ impl<'input> Tokenizer<'input> {
     // Real
     fn fractional_part(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
         match self.take_while(|c| c.is_digit(10)) {
-            Some((end, c)) => if c == 'e' || c == 'E' {
-                self.exponential_part(idx0)
-            } else if is_identifier_start(c) {
-                self.word(idx0);
-                error(BadNumber, idx0, self.text)
-            } else {
-                Ok((idx0, Float(&self.text[idx0..end]), end))
-            },
+            Some((end, c)) => {
+                if c == 'e' || c == 'E' {
+                    self.exponential_part(idx0)
+                } else if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
+                } else {
+                    Ok((idx0, Float(&self.text[idx0..end]), end))
+                }
+            }
             None => Ok((idx0, Float(&self.text[idx0..]), self.text.len())),
         }
     }
@@ -590,12 +594,14 @@ impl<'input> Tokenizer<'input> {
 
         match self.take_while_1(|c| c.is_digit(10)) {
             (false, _) => error(BadNumber, idx0, self.text),
-            (true, Some((end, c))) => if is_identifier_start(c) {
-                self.word(idx0);
-                error(BadNumber, idx0, self.text)
-            } else {
-                Ok((idx0, Float(&self.text[idx0..end]), end))
-            },
+            (true, Some((end, c))) => {
+                if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
+                } else {
+                    Ok((idx0, Float(&self.text[idx0..end]), end))
+                }
+            }
             (true, None) => Ok((idx0, Float(&self.text[idx0..]), self.text.len())),
         }
     }
@@ -612,17 +618,19 @@ impl<'input> Tokenizer<'input> {
             }
         }
         match self.take_while(|c| c.is_digit(10)) {
-            Some((end, c)) => if c == '.' {
-                self.bump();
-                self.fractional_part(idx0)
-            } else if c == 'e' || c == 'E' {
-                self.exponential_part(idx0)
-            } else if is_identifier_start(c) {
-                self.word(idx0);
-                error(BadNumber, idx0, self.text)
-            } else {
-                Ok((idx0, Integer(&self.text[idx0..end]), end))
-            },
+            Some((end, c)) => {
+                if c == '.' {
+                    self.bump();
+                    self.fractional_part(idx0)
+                } else if c == 'e' || c == 'E' {
+                    self.exponential_part(idx0)
+                } else if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(BadNumber, idx0, self.text)
+                } else {
+                    Ok((idx0, Integer(&self.text[idx0..end]), end))
+                }
+            }
             None => Ok((idx0, Integer(&self.text[idx0..]), self.text.len())),
         }
     }
@@ -634,12 +642,14 @@ impl<'input> Tokenizer<'input> {
                 self.word(idx0);
                 error(MalformedHexInteger, idx0, self.text)
             }
-            (true, Some((end, c))) => if is_identifier_start(c) {
-                self.word(idx0);
-                error(MalformedHexInteger, idx0, self.text)
-            } else {
-                Ok((idx0, Integer(&self.text[idx0..end]), end))
-            },
+            (true, Some((end, c))) => {
+                if is_identifier_start(c) {
+                    self.word(idx0);
+                    error(MalformedHexInteger, idx0, self.text)
+                } else {
+                    Ok((idx0, Integer(&self.text[idx0..end]), end))
+                }
+            }
             (true, None) => Ok((idx0, Integer(&self.text[idx0..]), self.text.len())),
         }
     }
@@ -703,12 +713,14 @@ impl<'input> Tokenizer<'input> {
                 None => {
                     return (succeed, None);
                 }
-                Some((_, c)) => if !keep_going(c) {
-                    return (succeed, self.lookahead);
-                } else {
-                    self.bump();
-                    succeed = true;
-                },
+                Some((_, c)) => {
+                    if !keep_going(c) {
+                        return (succeed, self.lookahead);
+                    } else {
+                        self.bump();
+                        succeed = true;
+                    }
+                }
             }
         }
     }
@@ -722,11 +734,13 @@ impl<'input> Tokenizer<'input> {
                 None => {
                     return None;
                 }
-                Some((_, c)) => if !keep_going(c) {
-                    return self.lookahead;
-                } else {
-                    self.bump();
-                },
+                Some((_, c)) => {
+                    if !keep_going(c) {
+                        return self.lookahead;
+                    } else {
+                        self.bump();
+                    }
+                }
             }
         }
     }
@@ -740,11 +754,13 @@ impl<'input> Tokenizer<'input> {
                 None => {
                     return None;
                 }
-                Some((idx1, c)) => if terminate(c) {
-                    return Some(idx1);
-                } else {
-                    self.bump();
-                },
+                Some((idx1, c)) => {
+                    if terminate(c) {
+                        return Some(idx1);
+                    } else {
+                        self.bump();
+                    }
+                }
             }
         }
     }
