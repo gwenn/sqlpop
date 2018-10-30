@@ -2,8 +2,8 @@
 //! Adapted from [SQLite parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/parse.y)
 
 use crate::ast::Cmd;
-use lalrpop_util;
 use crate::tok;
+use lalrpop_util;
 
 #[allow(dead_code)]
 lalrpop_mod!(lrsql, "/parser/lrsql.rs");
