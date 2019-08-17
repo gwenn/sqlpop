@@ -3,6 +3,7 @@
 [![Build Status](https://api.travis-ci.org/gwenn/sqlpop.svg?branch=master)](https://travis-ci.org/gwenn/sqlpop)
 [![Latest Version](https://img.shields.io/crates/v/sqlpop.svg)](https://crates.io/crates/sqlpop)
 [![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/sqlpop)
+[![dependency status](https://deps.rs/repo/github/gwenn/sqlpop/status.svg)](https://deps.rs/repo/github/gwenn/sqlpop)
 
 SQL parser (as understood by SQLite)
 
