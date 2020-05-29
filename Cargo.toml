@@ -17,7 +17,7 @@ travis-ci = { repository = "gwenn/sqlpop" }
 maintenance = { status = "experimental" }
 
 [dependencies]
-lalrpop-util = "0.18"
+lalrpop-util = "0.19"
 
 [build-dependencies]
-lalrpop = "0.18"
+lalrpop = "0.19"
