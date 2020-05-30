@@ -35,7 +35,7 @@ fn error<T>(c: ErrorCode, l: usize, t: &str) -> Result<T, Error> {
     Err(Error {
         location: l,
         code: c,
-        line: line,
+        line,
     })
 }
 
@@ -344,10 +344,10 @@ const KEYWORDS: &'static [(&'static str, Tok<'static>)] = &[
 impl<'input> Tokenizer<'input> {
     pub fn new(text: &'input str, shift: usize) -> Tokenizer<'input> {
         let mut t = Tokenizer {
-            text: text,
+            text,
             chars: text.char_indices(),
             lookahead: None,
-            shift: shift,
+            shift,
         };
         t.bump();
         t
@@ -523,7 +523,7 @@ impl<'input> Tokenizer<'input> {
                     }
                     break;
                 }
-                Some((_, _)) => {
+                Some((..)) => {
                     continue;
                 }
                 None => {
@@ -779,8 +779,8 @@ impl<'input> Iterator for Tokenizer<'input> {
                 line,
             })) => Some(Err(Error {
                 location: location + self.shift,
-                code: code,
-                line: line,
+                code,
+                line,
             })),
         }
     }
