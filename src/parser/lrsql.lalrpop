@@ -1,5 +1,5 @@
-use tok::{self, Tok};
-use ast::*;
+use crate::tok::{self, Tok};
+use crate::ast::*;
 
 #[recursive_ascent]
 grammar<'input>(text: &'input str);
