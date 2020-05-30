@@ -1,8 +1,0 @@
-sudo: false
-language: rust
-rust:
-  - nightly
-cache: cargo
-script:
-#  - cargo build --verbose
-  - travis_wait cargo test --verbose
