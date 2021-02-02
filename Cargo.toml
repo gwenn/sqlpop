@@ -13,7 +13,6 @@ license = "Apache-2.0/MIT"
 build = "build.rs" # LALRPOP preprocessing
 
 [badges]
-travis-ci = { repository = "gwenn/sqlpop" }
 maintenance = { status = "experimental" }
 
 [dependencies]
