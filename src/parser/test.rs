@@ -92,7 +92,7 @@ fn test_create_table() {
     parse_sql("CREATE TABLE main.test (col)").unwrap();
     parse_sql("CREATE TABLE test (id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL)").unwrap();
 
-    parse_sql("CREATE TABLE test (id INTERGER NOT NULL, PRIMARY KEY (id))").unwrap();
+    parse_sql("CREATE TABLE test (id INTEGER NOT NULL, PRIMARY KEY (id))").unwrap();
     parse_sql("CREATE TABLE test AS SELECT 1").unwrap();
 
     parse_sql("CREATE TEMP TABLE test (col)").unwrap();
@@ -146,9 +146,9 @@ fn test_table_constraints() {
     parse_sql("CREATE TABLE test (id, UNIQUE (id))").expect("UNIQUE constraint supported");
     parse_sql("CREATE TABLE test (id, CHECK (id > 0))").expect("CHECK constraint supported");
     parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id))")
-        .expect("FK constaint with one column reference supported");
+        .expect("FK constraint with one column reference supported");
     parse_sql("CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable)")
-        .expect("FK constaint with no column reference supported");
+        .expect("FK constraint with no column reference supported");
     parse_sql(
         "CREATE TABLE test (id, FOREIGN KEY (id) REFERENCES fktable(id) DEFERRABLE INITIALLY \
          DEFERRED)",

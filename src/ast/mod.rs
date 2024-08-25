@@ -239,7 +239,7 @@ pub enum Operator {
     NotEquals, // != or <>
     Or,
     RightShift,
-    Substract,
+    Subtract,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

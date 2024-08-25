@@ -623,7 +623,7 @@ BitExpr: Expr = {
 // %left PLUS MINUS.
 SumExpr: Expr = {
     <lhs:SumExpr> "+" <rhs:MulExpr> => Expr::Binary(Box::new(lhs), Operator::Add, Box::new(rhs)),
-    <lhs:SumExpr> "-" <rhs:MulExpr> => Expr::Binary(Box::new(lhs), Operator::Substract, Box::new(rhs)),
+    <lhs:SumExpr> "-" <rhs:MulExpr> => Expr::Binary(Box::new(lhs), Operator::Subtract, Box::new(rhs)),
     MulExpr,
 };
 // %left STAR SLASH REM.
