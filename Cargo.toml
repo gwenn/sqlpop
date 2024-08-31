@@ -16,7 +16,7 @@ build = "build.rs" # LALRPOP preprocessing
 maintenance = { status = "experimental" }
 
 [dependencies]
-lalrpop-util = "0.20"
+lalrpop-util = "0.21"
 
 [build-dependencies]
-lalrpop = "0.20"
+lalrpop = "0.21"
