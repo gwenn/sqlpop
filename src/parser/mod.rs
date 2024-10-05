@@ -5,7 +5,6 @@ use crate::ast::Cmd;
 use crate::tok;
 use lalrpop_util;
 
-#[allow(dead_code)]
 lalrpop_mod!(lrsql, "/parser/lrsql.rs");
 
 #[cfg(test)]
