@@ -2,7 +2,7 @@
 name = "sqlpop"
 version = "0.3.0"
 authors = ["gwenn"]
-edition = "2021"
+edition = "2024"
 description = "SQL parser (as understood by SQLite)"
 repository = "https://github.com/gwenn/sqlpop"
 documentation = "https://docs.rs/sqlpop"
