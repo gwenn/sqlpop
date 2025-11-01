@@ -7,11 +7,11 @@
 
 SQL parser (as understood by SQLite)
 
-* [LALRPOP and custom lexer](https://github.com/nikomatsakis/lalrpop/issues/39)
+* [LALRPOP and custom lexer](https://github.com/lalrpop/lalrpop/issues/39)
 * [SQLite tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
 * [SQLite parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/parse.y)
 * [SQLite syntax diagrams](https://www.sqlite.org/syntaxdiagrams.html)
 * [SQLite syntax diagram data](http://www.sqlite.org/docsrc/doc/tip/art/syntax/bubble-generator-data.tcl?mimetype=text/plain)
 
 Currently, only the lexer is complete and tested.
-The parser is almost complete (see [LALRPOP issues](https://github.com/nikomatsakis/lalrpop/issues/156)) but does not support recent SQLite features (like [UPSERT](https://sqlite.org/lang_UPSERT.html), [RENAME COLUMN](https://sqlite.org/lang_altertable.html), [Window functions](https://sqlite.org/windowfunctions.html)).
+The parser is almost complete (see [LALRPOP issues](https://github.com/lalrpop/lalrpop/issues/156)) but does not support recent SQLite features (like [UPSERT](https://sqlite.org/lang_UPSERT.html), [RENAME COLUMN](https://sqlite.org/lang_altertable.html), [Window functions](https://sqlite.org/windowfunctions.html)).
