@@ -1,5 +1,5 @@
 //! A SQL tokenizer.
-//! Adapted from [LALRPOP own Tokenizer](https://github.com/nikomatsakis/lalrpop/blob/master/lalrpop/src/tok/mod.rs)
+//! Adapted from [LALRPOP own Tokenizer](https://github.com/lalrpop/lalrpop/blob/master/lalrpop/src/tok/mod.rs)
 //! and [SQLite tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
 
 use std::str::CharIndices;
