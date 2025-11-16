@@ -213,8 +213,8 @@ pub enum Tok<'input> {
     Star,
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-const KEYWORDS: &'static [(&'static str, Tok<'static>)] = &[
+#[rustfmt::skip]
+const KEYWORDS: &[(&str, Tok<'static>)] = &[
     ("ABORT", Abort),
     ("ACTION", Action),
     ("ADD", Add),
@@ -462,14 +462,14 @@ impl<'input> Tokenizer<'input> {
                 }
                 Some((idx0, c)) if c == '`' || c == '\'' || c == '"' => Some(self.literal(idx0, c)),
                 Some((idx0, '.')) => match self.bump() {
-                    Some((_, c)) if c.is_digit(10) => Some(self.fractional_part(idx0)),
+                    Some((_, c)) if c.is_ascii_digit() => Some(self.fractional_part(idx0)),
                     _ => Some(Ok((idx0, Dot, idx0 + 1))),
                 },
-                Some((idx0, c)) if c.is_digit(10) => Some(self.number(idx0, c)),
+                Some((idx0, c)) if c.is_ascii_digit() => Some(self.number(idx0, c)),
                 Some((idx0, '[')) => Some(self.bracket(idx0)),
                 Some((idx0, '?')) => {
                     self.bump();
-                    let num = match self.take_while_1(|c| c.is_digit(10)) {
+                    let num = match self.take_while_1(|c| c.is_ascii_digit()) {
                         (false, _) => (idx0, Variable(""), idx0 + 1),
                         (true, Some((end, _))) => (idx0, Variable(&self.text[idx0..end]), end), /* '?' is included as part of the name */
                         (true, None) => (idx0, Variable(&self.text[idx0..]), self.text.len()),
@@ -516,11 +516,10 @@ impl<'input> Tokenizer<'input> {
             t = self.bump();
             match t {
                 Some((_, c)) if c == delim => {
-                    if let Some((_, nc)) = self.bump() {
-                        if nc == delim {
+                    if let Some((_, nc)) = self.bump()
+                        && nc == delim {
                             continue;
                         }
-                    }
                     break;
                 }
                 Some((..)) => {
@@ -549,7 +548,7 @@ impl<'input> Tokenizer<'input> {
         let mut n = 0;
         loop {
             match self.bump() {
-                Some((_, c)) if c.is_digit(16) => {
+                Some((_, c)) if c.is_ascii_hexdigit() => {
                     n += 1;
                 }
                 Some((idx1, '\'')) if n % 2 == 0 => {
@@ -568,7 +567,7 @@ impl<'input> Tokenizer<'input> {
 
     // Real
     fn fractional_part(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
-        match self.take_while(|c| c.is_digit(10)) {
+        match self.take_while(|c| c.is_ascii_digit()) {
             Some((end, c)) => {
                 if c == 'e' || c == 'E' {
                     self.exponential_part(idx0)
@@ -592,7 +591,7 @@ impl<'input> Tokenizer<'input> {
             _ => {}
         };
 
-        match self.take_while_1(|c| c.is_digit(10)) {
+        match self.take_while_1(|c| c.is_ascii_digit()) {
             (false, _) => error(BadNumber, idx0, self.text),
             (true, Some((end, c))) => {
                 if is_identifier_start(c) {
@@ -617,7 +616,7 @@ impl<'input> Tokenizer<'input> {
                 _ => {}
             }
         }
-        match self.take_while(|c| c.is_digit(10)) {
+        match self.take_while(|c| c.is_ascii_digit()) {
             Some((end, c)) => {
                 if c == '.' {
                     self.bump();
@@ -637,7 +636,7 @@ impl<'input> Tokenizer<'input> {
 
     fn hex_integer(&mut self, idx0: usize) -> Result<Spanned<Tok<'input>>, Error> {
         // Must not be empty (Ox is invalid)
-        match self.take_while_1(|c| c.is_digit(16)) {
+        match self.take_while_1(|c| c.is_ascii_hexdigit()) {
             (false, _) => {
                 self.word(idx0);
                 error(MalformedHexInteger, idx0, self.text)
@@ -660,9 +659,9 @@ impl<'input> Tokenizer<'input> {
         let tok = KEYWORDS
             .iter()
             .filter(|&&(w, _)| w.eq_ignore_ascii_case(word))
-            .map(|&(_, ref t)| t.clone())
+            .map(|(_, t)| t.clone())
             .next()
-            .unwrap_or_else(|| Id(word));
+            .unwrap_or(Id(word));
         Ok((start, tok, end))
     }
 
@@ -787,14 +786,14 @@ impl<'input> Iterator for Tokenizer<'input> {
 }
 
 fn is_identifier_start(c: char) -> bool {
-    (c >= 'A' && c <= 'Z') || c == '_' || (c >= 'a' && c <= 'z') || c > '\x7F'
+    c.is_ascii_uppercase() || c == '_' || c.is_ascii_lowercase() || c > '\x7F'
 }
 
 fn is_identifier_continue(c: char) -> bool {
     c == '$'
-        || (c >= '0' && c <= '9')
-        || (c >= 'A' && c <= 'Z')
+        || c.is_ascii_digit()
+        || c.is_ascii_uppercase()
         || c == '_'
-        || (c >= 'a' && c <= 'z')
+        || c.is_ascii_lowercase()
         || c > '\x7F'
 }

@@ -1,4 +1,5 @@
 #![allow(unreachable_patterns)]
+#![warn(clippy::large_stack_frames)]
 
 #[macro_use]
 extern crate lalrpop_util;

@@ -1,2 +1,2 @@
 doc-valid-idents = ["SQLite"]
-cyclomatic-complexity-threshold = 53
+#cyclomatic-complexity-threshold = 53
